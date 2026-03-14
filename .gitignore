@@ -1,5 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
+*.apk
+*.app.asar
+*.app.asar.unpacked
+*.app.asar.unpacked.js
+*.app.asar.unpacked.js.map
+*.app.asar.unpacked.js.map.gz
+*.app.asar.unpacked.js.map.gz.map
+*.app.asar.unpacked.js.map.gz.map.gz
+*.app.asar.unpacked.js.map.gz.map.gz.map
 # dependencies
 /node_modules
 /.pnp
@@ -19,6 +27,14 @@
 
 # production
 /build
+
+# Android artifacts
+android_app/**/build/
+android_app/**/.gradle/
+android_app/**/.idea/
+android_app/**/*.apk
+android_app/**/build/**/*.so
+android_app/**/local.properties
 
 # misc
 .DS_Store
