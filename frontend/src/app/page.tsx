@@ -9,7 +9,7 @@ import FadeIn from "@/components/FadeIn";
    ════════════════════════════════════════════ */
 
 const bootLines = [
-  "[0.000] SENTINAL OS v1.0.3 — kernel init",
+  "[0.000] SENTINEL OS v1.0.3 — kernel init",
   "[0.012] loading neural engine .............. OK",
   "[0.034] mounting vision pipeline (YOLOv8x) . OK",
   "[0.051] face recognition db: 12 profiles ... OK",
@@ -806,7 +806,7 @@ function DetectionDemo() {
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 ${isDanger ? "bg-red-500" : "bg-[#22C55E]"} animate-pulse-dot`} />
               <span className="text-[10px] font-mono text-white/70 tracking-widest">
-                SENTINAL OS — {isDanger ? "ALERT" : isActive ? "SCANNING" : "STANDBY"}
+                SENTINEL OS — {isDanger ? "ALERT" : isActive ? "SCANNING" : "STANDBY"}
               </span>
             </div>
             <div className="text-right space-y-0.5">
@@ -1011,7 +1011,7 @@ export default function Home() {
         {heroVisible && <>
           <div className="absolute top-[76px] left-6 lg:left-14 z-10 flex items-center gap-2" style={{ animation: "fade-in-up 0.6s ease-out 1.2s both" }}>
             <span className="w-1.5 h-1.5 bg-[#22C55E] animate-pulse-dot" />
-            <span className="text-[9px] font-mono text-white/50 tracking-widest">SENTINAL OS — ONLINE</span>
+            <span className="text-[9px] font-mono text-white/50 tracking-widest">SENTINEL OS — ONLINE</span>
           </div>
           <div className="absolute top-[76px] right-6 lg:right-14 z-10 text-right" style={{ animation: "fade-in-up 0.6s ease-out 1.4s both" }}>
             <div className="text-[9px] font-mono text-white/50 tracking-widest space-y-0.5"><div>ALT 45.2m</div><div>SPD 12 km/h</div></div>
@@ -1046,7 +1046,7 @@ export default function Home() {
                 Autonomous Drone Intelligence
               </div>
               <h1 className="text-[clamp(3rem,8vw,7rem)] font-semibold tracking-[-0.03em] leading-[0.9] text-white" style={{ animation: "clip-reveal-left 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both" }}>
-                Sentinal
+                Sentinel
                 <br /><span className="text-[#CDFF00] crt-glow" style={{ animation: "glow-in 1.2s ease-out 1.5s both" }}>OS</span>
               </h1>
               <div className="mt-8 h-px bg-gradient-to-r from-[#CDFF00]/50 via-[#CDFF00]/25 to-transparent max-w-md" style={{ animation: "line-grow 0.8s ease-out 1.8s both", transformOrigin: "left" }} />
