@@ -613,15 +613,6 @@ function DetectionDemo() {
   const [confidence, setConfidence] = useState(89);
   const cycleRef = useRef<number>(0);
 
-  // Pause video at t=0 on mount
-  useEffect(() => {
-    const v = videoRef.current;
-    if (v) {
-      v.pause();
-      v.currentTime = 0;
-    }
-  }, []);
-
   // Start on scroll
   useEffect(() => {
     const el = sectionRef.current;
@@ -640,7 +631,7 @@ function DetectionDemo() {
     return () => clearInterval(iv);
   }, [started]);
 
-  // Sync detection box position to video time
+  // Sync detection box position to video time (always running)
   const showBoxRef = useRef(false);
   showBoxRef.current = showBox;
 
@@ -650,7 +641,7 @@ function DetectionDemo() {
     const tick = () => {
       if (showBoxRef.current) {
         const v = videoRef.current;
-        if (v && !v.paused) {
+        if (v) {
           const t = v.currentTime;
           const kf = lerpKF(t);
           setBoxPos({ x: kf.x, y: kf.y, w: kf.w, h: kf.h });
@@ -682,8 +673,6 @@ function DetectionDemo() {
     const cycle = cycleRef.current;
 
     const run = async () => {
-      const v = videoRef.current;
-
       // Reset everything
       setPhase("idle");
       setShowBox(false);
@@ -692,22 +681,6 @@ function DetectionDemo() {
       setTempReading(22);
       setInfoLines([]);
       setTypeText("");
-
-      // Reset video to start and wait until it's actually playing
-      if (v) {
-        v.currentTime = 0;
-        await new Promise<void>(resolve => {
-          const onSeeked = () => {
-            v.removeEventListener("seeked", onSeeked);
-            v.play().then(resolve).catch(resolve);
-          };
-          if (v.readyState >= 2 && v.currentTime === 0) {
-            v.play().then(resolve).catch(resolve);
-          } else {
-            v.addEventListener("seeked", onSeeked);
-          }
-        });
-      }
 
       await wait(1200);
 
@@ -764,19 +737,8 @@ function DetectionDemo() {
       await wait(600);
       await typeOut("MAINTAINING VISUAL — AI TRACKING ACTIVE", 25);
 
-      // Wait for video to end, then restart cycle
-      if (v) {
-        await new Promise<void>(resolve => {
-          const onEnded = () => { v.removeEventListener("ended", onEnded); resolve(); };
-          // If video already ended or is close to end, resolve immediately
-          if (v.duration - v.currentTime < 0.5) { resolve(); return; }
-          v.addEventListener("ended", onEnded);
-        });
-      } else {
-        await wait(10000);
-      }
-
-      await wait(1500);
+      // Hold tracking for remaining time then loop
+      await wait(10000);
 
       if (cycleRef.current === cycle) {
         cycleRef.current++;
@@ -807,7 +769,7 @@ function DetectionDemo() {
       <FadeIn delay={200}>
         <div className={`relative w-full aspect-video bg-[#050505] border overflow-hidden transition-all duration-500 ${alertFlash ? "border-red-500/60 shadow-[0_0_60px_rgba(239,68,68,0.15)]" : isDanger ? "border-red-500/30" : "border-[#1A1A1A]"}`}>
           {/* Video */}
-          <video ref={videoRef} muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover opacity-70">
+          <video ref={videoRef} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-70">
             <source src="/forest-fire-web.mp4" type="video/mp4" />
           </video>
 

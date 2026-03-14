@@ -8,8 +8,8 @@ export default function Navbar() {
         <Image
           src="/sentinal-OS-logo.png"
           alt="Sentinal OS"
-          width={40}
-          height={40}
+          width={56}
+          height={56}
           className="rounded-sm"
         />
         <span className="text-sm font-medium tracking-[0.2em] text-[#EDEDED] uppercase">
