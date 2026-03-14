@@ -28,6 +28,14 @@
 # production
 /build
 
+# Android artifacts
+android_app/**/build/
+android_app/**/.gradle/
+android_app/**/.idea/
+android_app/**/*.apk
+android_app/**/build/**/*.so
+android_app/**/local.properties
+
 # misc
 .DS_Store
 *.pem
