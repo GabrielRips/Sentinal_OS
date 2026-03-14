@@ -5,6 +5,73 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import FadeIn from "@/components/FadeIn";
 
 /* ════════════════════════════════════════════
+   GLITCH SCRAMBLE TEXT
+   ════════════════════════════════════════════ */
+
+const GLITCH_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*!?/\\|<>{}[]~^";
+const ORIGINAL = "Sentinel OS";
+
+function GlitchText() {
+  const [display, setDisplay] = useState(ORIGINAL);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const scramble = () => {
+      let iteration = 0;
+      const totalFrames = 12;
+
+      if (intervalRef.current) clearInterval(intervalRef.current);
+
+      intervalRef.current = setInterval(() => {
+        setDisplay(
+          ORIGINAL.split("")
+            .map((char, i) => {
+              if (char === " ") return " ";
+              if (iteration / totalFrames > i / ORIGINAL.length) return ORIGINAL[i];
+              return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+            })
+            .join("")
+        );
+        iteration++;
+        if (iteration > totalFrames + ORIGINAL.length) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          setDisplay(ORIGINAL);
+        }
+      }, 50);
+    };
+
+    // Initial scramble after mount
+    const initialDelay = setTimeout(scramble, 1500);
+
+    // Repeat every few seconds
+    const loop = setInterval(scramble, 5000);
+
+    return () => {
+      clearTimeout(initialDelay);
+      clearInterval(loop);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  // Split display into "Sentinel" and "OS" parts
+  const sentinelPart = display.slice(0, 8);
+  const osPart = display.slice(9);
+
+  return (
+    <h1
+      className="text-[clamp(3rem,8vw,7rem)] font-semibold tracking-[-0.03em] leading-[0.9] text-white font-mono"
+      style={{ animation: "clip-reveal-left 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both" }}
+    >
+      {sentinelPart}
+      <br />
+      <span className="text-[#CDFF00] crt-glow" style={{ animation: "glow-in 1.2s ease-out 1.5s both" }}>
+        {osPart}
+      </span>
+    </h1>
+  );
+}
+
+/* ════════════════════════════════════════════
    BOOT SEQUENCE
    ════════════════════════════════════════════ */
 
@@ -1103,10 +1170,7 @@ export default function Home() {
               <div className="text-[10px] font-mono tracking-[0.5em] uppercase text-[#CDFF00]/80 mb-6" style={{ animation: "fade-in-up 0.6s ease-out 0.3s both" }}>
                 Autonomous Drone Intelligence
               </div>
-              <h1 className="text-[clamp(3rem,8vw,7rem)] font-semibold tracking-[-0.03em] leading-[0.9] text-white" style={{ animation: "clip-reveal-left 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both" }}>
-                Sentinel
-                <br /><span className="text-[#CDFF00] crt-glow" style={{ animation: "glow-in 1.2s ease-out 1.5s both" }}>OS</span>
-              </h1>
+              <GlitchText />
               <div className="mt-8 h-px bg-gradient-to-r from-[#CDFF00]/50 via-[#CDFF00]/25 to-transparent max-w-md" style={{ animation: "line-grow 0.8s ease-out 1.8s both", transformOrigin: "left" }} />
               <p className="mt-6 text-base sm:text-lg text-[#BBB] max-w-lg leading-relaxed" style={{ animation: "fade-in-up 0.8s ease-out 2s both" }}>
                 Speak a command. The AI flies, scans, detects, and reports back. Search&nbsp;&amp;&nbsp;rescue, surveillance, sports — one voice interface for any DJI drone.
