@@ -159,3 +159,131 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #2A2A2A; }
 
 ::selection { background: rgba(205, 255, 0, 0.2); color: white; }
+
+/* ═══════════════════════════════════════════
+   BOOT SEQUENCE & DRAMATIC ANIMATIONS
+   ═══════════════════════════════════════════ */
+
+/* Boot overlay */
+@keyframes boot-flicker {
+  0%, 100% { opacity: 1; }
+  4% { opacity: 0.7; }
+  8% { opacity: 1; }
+  12% { opacity: 0.85; }
+}
+@keyframes boot-scanline {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
+}
+
+.boot-overlay {
+  animation: boot-flicker 0.3s ease-in-out 3;
+}
+.boot-scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    transparent,
+    transparent 2px,
+    rgba(205, 255, 0, 0.015) 2px,
+    rgba(205, 255, 0, 0.015) 4px
+  );
+  pointer-events: none;
+}
+
+/* Hero heading reveal */
+@keyframes clip-reveal-left {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes clip-reveal-up {
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes glow-in {
+  from { opacity: 0; text-shadow: 0 0 40px rgba(205, 255, 0, 0.6); }
+  50% { opacity: 1; text-shadow: 0 0 60px rgba(205, 255, 0, 0.4); }
+  to { opacity: 1; text-shadow: none; }
+}
+@keyframes line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes border-trace {
+  0% { clip-path: inset(0 100% 100% 0); }
+  50% { clip-path: inset(0 0 100% 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes pulse-ring {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+@keyframes data-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+/* ───── Bento Grid ───── */
+.bento-tile {
+  position: relative;
+  background: #0A0A0A;
+  border: 1px solid #1A1A1A;
+  height: 100%;
+  transition: border-color 0.4s, box-shadow 0.4s;
+  overflow: hidden;
+}
+.bento-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(205, 255, 0, 0.02) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  z-index: 1;
+}
+.bento-tile:hover {
+  border-color: #2A2A2A;
+  box-shadow:
+    0 0 30px rgba(205, 255, 0, 0.04),
+    inset 0 1px 0 rgba(205, 255, 0, 0.06);
+}
+.bento-tile:hover::before {
+  opacity: 1;
+}
+
+/* Detection alert flash */
+@keyframes alert-flash {
+  0% { box-shadow: 0 0 0 rgba(205, 255, 0, 0); border-color: #1A1A1A; }
+  15% { box-shadow: 0 0 40px rgba(205, 255, 0, 0.15); border-color: rgba(205, 255, 0, 0.4); }
+  100% { box-shadow: 0 0 0 rgba(205, 255, 0, 0); border-color: #1A1A1A; }
+}
+.alert-flash {
+  animation: alert-flash 1.5s ease-out;
+}
+
+/* ───── Detection Appear ───── */
+@keyframes detection-appear {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-detection-appear {
+  animation: detection-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* CRT glow effect on hero */
+.crt-glow {
+  text-shadow:
+    0 0 10px rgba(205, 255, 0, 0.1),
+    0 0 40px rgba(205, 255, 0, 0.03);
+}
+
+/* Ambient data stream */
+.data-stream {
+  animation: data-scroll 20s linear infinite;
+}
