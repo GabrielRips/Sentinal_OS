@@ -6,11 +6,11 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 lg:px-12 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A]">
       <Link href="/">
         <Image
-          src="/sentinal-OS-logo.png"
+          src="/sentinel-os.png"
           alt="Sentinel OS"
-          width={56}
-          height={56}
-          className="rounded-sm"
+          width={160}
+          height={40}
+          className="h-9 w-auto"
         />
       </Link>
 
