@@ -641,22 +641,27 @@ function DetectionDemo() {
   }, [started]);
 
   // Sync detection box position to video time
+  const showBoxRef = useRef(false);
+  showBoxRef.current = showBox;
+
   useEffect(() => {
-    if (!showBox) return;
+    if (!started) return;
     let raf: number;
     const tick = () => {
-      const v = videoRef.current;
-      if (v) {
-        const t = v.currentTime;
-        const kf = lerpKF(t);
-        setBoxPos({ x: kf.x, y: kf.y, w: kf.w, h: kf.h });
-        setConfidence(getConfidence(t));
+      if (showBoxRef.current) {
+        const v = videoRef.current;
+        if (v && !v.paused) {
+          const t = v.currentTime;
+          const kf = lerpKF(t);
+          setBoxPos({ x: kf.x, y: kf.y, w: kf.w, h: kf.h });
+          setConfidence(getConfidence(t));
+        }
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [showBox]);
+  }, [started]);
 
   // Typewriter helper
   const typeOut = useCallback((text: string, speed: number = 30): Promise<void> => {
@@ -688,10 +693,20 @@ function DetectionDemo() {
       setInfoLines([]);
       setTypeText("");
 
-      // Reset video to start and play
+      // Reset video to start and wait until it's actually playing
       if (v) {
         v.currentTime = 0;
-        v.play().catch(() => {});
+        await new Promise<void>(resolve => {
+          const onSeeked = () => {
+            v.removeEventListener("seeked", onSeeked);
+            v.play().then(resolve).catch(resolve);
+          };
+          if (v.readyState >= 2 && v.currentTime === 0) {
+            v.play().then(resolve).catch(resolve);
+          } else {
+            v.addEventListener("seeked", onSeeked);
+          }
+        });
       }
 
       await wait(1200);
@@ -792,7 +807,7 @@ function DetectionDemo() {
       <FadeIn delay={200}>
         <div className={`relative w-full aspect-video bg-[#050505] border overflow-hidden transition-all duration-500 ${alertFlash ? "border-red-500/60 shadow-[0_0_60px_rgba(239,68,68,0.15)]" : isDanger ? "border-red-500/30" : "border-[#1A1A1A]"}`}>
           {/* Video */}
-          <video ref={videoRef} muted playsInline preload="none" className="absolute inset-0 w-full h-full object-cover opacity-70">
+          <video ref={videoRef} muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover opacity-70">
             <source src="/forest-fire-web.mp4" type="video/mp4" />
           </video>
 
