@@ -1,9 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import FadeIn from "@/components/FadeIn";
+import { getDroneVideoConfig } from "@/lib/droneVideo";
 
-const captures = [
+interface CaptureItem {
+  time: string;
+  type: string;
+  confidence: string;
+  accent: string;
+  thumbnail?: string;
+}
+
+const initialCaptures: CaptureItem[] = [
   { time: "14:02:15", type: "Person", confidence: "94%", accent: "#CDFF00" },
   { time: "14:05:33", type: "Vehicle", confidence: "87%", accent: "#F59E0B" },
   { time: "14:12:01", type: "Person", confidence: "91%", accent: "#CDFF00" },
@@ -12,31 +21,202 @@ const captures = [
   { time: "14:28:19", type: "Animal", confidence: "82%", accent: "#22C55E" },
 ];
 
+function formatTime(totalSeconds: number) {
+  const h = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
+  const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+  const sec = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${h}:${m}:${sec}`;
+}
+
+function getSupportedMediaRecorderMimeType(): string | undefined {
+  const candidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+  ];
+
+  return candidates.find((mime) => MediaRecorder.isTypeSupported(mime));
+}
+
+function formatClockTime(date = new Date()) {
+  return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
+}
+
 export default function LiveFeedPage() {
+  const videoConfig = getDroneVideoConfig();
   const [scanY, setScanY] = useState(0);
-  const [recording, setRecording] = useState(true);
+  const [recording, setRecording] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
-  const [elapsed, setElapsed] = useState(872);
+  const [elapsed, setElapsed] = useState(0);
+  const [captures, setCaptures] = useState<CaptureItem[]>(initialCaptures);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [videoStatus, setVideoStatus] = useState(
+    videoConfig.isRealFeedActive ? "Connected to live stream" : "Demo mode: local MP4 playback"
+  );
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const generatedUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const scanInterval = setInterval(() => {
       setScanY((prev) => (prev >= 100 ? 0 : prev + 0.3));
     }, 30);
-    const timeInterval = setInterval(() => {
-      setElapsed((prev) => prev + 1);
-    }, 1000);
     return () => {
       clearInterval(scanInterval);
-      clearInterval(timeInterval);
     };
   }, []);
 
-  const formatTime = (s: number) => {
-    const h = Math.floor(s / 3600).toString().padStart(2, "0");
-    const m = Math.floor((s % 3600) / 60).toString().padStart(2, "0");
-    const sec = (s % 60).toString().padStart(2, "0");
-    return `${h}:${m}:${sec}`;
-  };
+  useEffect(() => {
+    if (!recording) return;
+    const id = window.setInterval(() => setElapsed((prev) => prev + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [recording]);
+
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+      generatedUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  const downloadBlob = useCallback((blob: Blob, prefix: string, ext: string) => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `${prefix}-${stamp}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (!recorderRef.current || recorderRef.current.state === "inactive") return;
+    recorderRef.current.stop();
+    setVideoStatus("Recording stopped, preparing download...");
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const captureStream = (video as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream;
+
+    if (typeof captureStream !== "function") {
+      setVideoStatus("Recording unsupported in this browser");
+      return;
+    }
+
+    try {
+      if (video.paused) {
+        await video.play();
+      }
+
+      const stream = captureStream.call(video);
+      const mimeType = getSupportedMediaRecorderMimeType();
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
+      chunksRef.current = [];
+      recorderRef.current = recorder;
+      setElapsed(0);
+      setRecording(true);
+      setVideoStatus("Recording in progress");
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setRecording(false);
+        setVideoStatus("Recording failed");
+      };
+
+      recorder.onstop = () => {
+        setRecording(false);
+        const type = recorder.mimeType || "video/webm";
+        const blob = new Blob(chunksRef.current, { type });
+        chunksRef.current = [];
+        if (blob.size > 0) {
+          downloadBlob(blob, "drone-recording", "webm");
+          setVideoStatus("Recording downloaded");
+        } else {
+          setVideoStatus("Recording empty, nothing downloaded");
+        }
+      };
+
+      recorder.start(1000);
+    } catch {
+      setRecording(false);
+      setVideoStatus("Unable to start recording");
+    }
+  }, [downloadBlob]);
+
+  const toggleRecording = useCallback(() => {
+    if (recording) {
+      stopRecording();
+      return;
+    }
+
+    void startRecording();
+  }, [recording, startRecording, stopRecording]);
+
+  const handleCapture = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
+      setVideoStatus("Feed not ready for capture");
+      return;
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        setVideoStatus("Capture unavailable");
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const pngBlob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, "image/png");
+      });
+
+      if (!pngBlob) {
+        setVideoStatus("Capture failed");
+        return;
+      }
+
+      const thumbnailUrl = URL.createObjectURL(pngBlob);
+      generatedUrlsRef.current.push(thumbnailUrl);
+
+      setCaptures((prev) => [
+        {
+          time: formatClockTime(),
+          type: "Frame",
+          confidence: "100%",
+          accent: "#22C55E",
+          thumbnail: thumbnailUrl,
+        },
+        ...prev.slice(0, 11),
+      ]);
+
+      downloadBlob(pngBlob, "drone-capture", "png");
+      setVideoStatus("Capture downloaded");
+    } catch {
+      setVideoStatus("Capture blocked by stream security settings");
+    }
+  }, [downloadBlob]);
 
   return (
     <section className="max-w-7xl mx-auto px-6 lg:px-12 pt-28 pb-32">
@@ -102,13 +282,23 @@ export default function LiveFeedPage() {
 
           {/* Background video */}
           <video
+            ref={videoRef}
             autoPlay
             muted
-            loop
+            loop={!videoConfig.isRealFeedActive}
             playsInline
+            crossOrigin="anonymous"
+            onLoadedData={() => {
+              setStreamError(null);
+              setVideoStatus(videoConfig.isRealFeedActive ? "Live stream connected" : "Demo feed loaded");
+            }}
+            onError={() => {
+              setStreamError("Unable to load video stream. Check your stream URL and CORS settings.");
+              setVideoStatus("Stream connection failed");
+            }}
             className="absolute inset-0 w-full h-full object-cover opacity-25"
           >
-            <source src="https://assets.mixkit.co/videos/506/506-720.mp4" type="video/mp4" />
+            <source src={videoConfig.sourceUrl} />
           </video>
 
           {/* HUD Bottom */}
@@ -119,12 +309,13 @@ export default function LiveFeedPage() {
             <span className="text-[10px] font-mono ml-auto" style={{ color: aiEnabled ? "#CDFF00" : "#555" }}>
               AI: {aiEnabled ? "ON" : "OFF"}
             </span>
-            {recording && (
-              <span className="text-[10px] font-mono text-red-400 flex items-center gap-1.5">
-                <span className="w-1 h-1 bg-red-500" />
-                REC {formatTime(elapsed)}
-              </span>
-            )}
+            <span className="text-[10px] font-mono text-[#555]">
+              FEED {videoConfig.isRealFeedActive ? "REAL" : "DEMO"}
+            </span>
+            <span className="text-[10px] font-mono text-red-400 flex items-center gap-1.5">
+              <span className="w-1 h-1 bg-red-500" />
+              {recording ? `REC ${formatTime(elapsed)}` : "REC OFF"}
+            </span>
           </div>
         </div>
       </FadeIn>
@@ -132,24 +323,37 @@ export default function LiveFeedPage() {
       {/* Controls */}
       <FadeIn delay={200}>
         <div className="flex flex-wrap gap-2 mt-4">
-          {[
-            { label: recording ? "Stop Recording" : "Record", onClick: () => setRecording(!recording), active: recording, activeColor: "text-red-400" },
-            { label: "Screenshot", onClick: () => {}, active: false, activeColor: "" },
-            { label: `AI ${aiEnabled ? "ON" : "OFF"}`, onClick: () => setAiEnabled(!aiEnabled), active: aiEnabled, activeColor: "text-[#CDFF00]" },
-            { label: "Night Mode", onClick: () => {}, active: false, activeColor: "" },
-            { label: "Fullscreen", onClick: () => {}, active: false, activeColor: "" },
-          ].map((btn) => (
-            <button
-              key={btn.label}
-              onClick={btn.onClick}
-              className={`border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] ${
-                btn.active ? btn.activeColor : "text-[#888]"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
+          <button
+            onClick={toggleRecording}
+            className={`border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] ${
+              recording ? "text-red-400" : "text-[#888]"
+            }`}
+          >
+            {recording ? "Stop Recording" : "Record"}
+          </button>
+          <button
+            onClick={handleCapture}
+            className="border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] text-[#888]"
+          >
+            Screenshot
+          </button>
+          <button
+            onClick={() => setAiEnabled(!aiEnabled)}
+            className={`border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] ${
+              aiEnabled ? "text-[#CDFF00]" : "text-[#888]"
+            }`}
+          >
+            AI {aiEnabled ? "ON" : "OFF"}
+          </button>
+          <button className="border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] text-[#888]">
+            Night Mode
+          </button>
+          <button className="border border-[#1A1A1A] px-4 py-2 text-xs font-mono tracking-wider uppercase transition-colors hover:border-[#2A2A2A] hover:bg-[#111] text-[#888]">
+            Fullscreen
+          </button>
         </div>
+        <p className="mt-3 text-[10px] font-mono text-[#666]">{videoStatus}</p>
+        {streamError && <p className="mt-1 text-[10px] font-mono text-red-400">{streamError}</p>}
       </FadeIn>
 
       {/* Recent Captures */}
@@ -164,12 +368,19 @@ export default function LiveFeedPage() {
                 className="bg-[#0A0A0A] hover:bg-[#0F0F0F] transition-colors cursor-pointer group"
               >
                 <div className="aspect-square bg-[#111] relative border-b border-[#1A1A1A]">
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  {cap.thumbnail ? (
                     <div
-                      className="w-6 h-8 border border-dashed opacity-30"
-                      style={{ borderColor: cap.accent }}
+                      className="w-full h-full bg-cover bg-center"
+                      style={{ backgroundImage: `url(${cap.thumbnail})` }}
                     />
-                  </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div
+                        className="w-6 h-8 border border-dashed opacity-30"
+                        style={{ borderColor: cap.accent }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="p-3">
                   <p className="text-[9px] font-mono text-[#555]">{cap.time}</p>
