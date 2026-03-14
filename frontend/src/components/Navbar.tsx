@@ -6,7 +6,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 lg:px-12 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A]">
       <Link href="/" className="flex items-center gap-2.5">
         <Image
-          src="/sentinal-OS-logo.jpeg"
+          src="/sentinal-OS-logo.png"
           alt="Sentinal OS"
           width={28}
           height={28}
