@@ -1,16 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-20 flex items-center justify-between px-6 lg:px-12 bg-[#0A0A0A]/90 backdrop-blur-md border-b border-[#1A1A1A]">
       <Link href="/">
-        <Image
+        <img
           src="/sentinel-os.png"
           alt="Sentinel OS"
-          width={280}
-          height={70}
-          className="h-16 w-auto"
+          style={{ height: '52px', width: 'auto' }}
         />
       </Link>
 
