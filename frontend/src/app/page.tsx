@@ -796,8 +796,26 @@ function DetectionDemo() {
       if (cancelled) return;
       await typeOut("MAINTAINING VISUAL — AI TRACKING ACTIVE", 25);
 
-      // Hold tracking until the video loop restarts the sequence.
-      await wait(10000);
+      // Hold tracking then restart the whole sequence
+      await wait(6000);
+      if (cancelled) return;
+
+      // Reset for next loop
+      setShowBox(false);
+      setPhase("idle");
+      setAlertFlash(false);
+      setThreatLevel("LOW");
+      setTempReading(22);
+      setInfoLines([]);
+      setTypeText("");
+
+      // Restart video from beginning
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+      }
+
+      await wait(1500);
+      if (!cancelled) run();
     };
 
     run();
