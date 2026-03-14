@@ -7,7 +7,7 @@ export default function Navbar() {
         <img
           src="/sentinel-os.png"
           alt="Sentinel OS"
-          style={{ height: '39px', width: 'auto' }}
+          style={{ height: '32px', width: 'auto' }}
         />
       </Link>
 
