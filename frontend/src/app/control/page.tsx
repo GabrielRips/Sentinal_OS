@@ -63,50 +63,11 @@ function getResponse(text: string): string {
   return aiResponses.default;
 }
 
-// ─── Waveform Bars ─────────────────────────────────────────────────────────────
-
-function WaveformBars({
-  active,
-  color = "#888",
-  bars = 5,
-}: {
-  active: boolean;
-  color?: string;
-  bars?: number;
-}) {
-  const delays = [0, 0.08, 0.16, 0.08, 0];
-  return (
-    <div className="flex items-center gap-px" style={{ height: "14px" }}>
-      {Array.from({ length: bars }).map((_, i) => {
-        const delay = delays[i % delays.length];
-        return (
-          <div
-            key={i}
-            style={{
-              width: "2px",
-              height: "14px",
-              backgroundColor: color,
-              transformOrigin: "center",
-              opacity: active ? 1 : 0.3,
-              animation: active
-                ? `waveBar 0.45s ease-in-out ${delay}s infinite alternate`
-                : "none",
-              transform: active ? undefined : "scaleY(0.25)",
-              transition: "opacity 0.2s, transform 0.2s",
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ControlPanel() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
-  const [scanY, setScanY] = useState(0);
   const [notifications] = useState<Notification[]>(initialNotifications);
 
   const [dronePos, setDronePos] = useState({ x: 150, y: 90 });
@@ -136,11 +97,6 @@ export default function ControlPanel() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    const iv = setInterval(() => setScanY((p) => (p >= 100 ? 0 : p + 0.5)), 30);
-    return () => clearInterval(iv);
-  }, []);
 
   useEffect(() => {
     let t = 0;
@@ -272,62 +228,50 @@ export default function ControlPanel() {
 
   return (
     <div className="fixed left-0 right-0 top-14 bottom-0 bg-[#0A0A0A] flex flex-col overflow-hidden">
-      {/* Sub-header */}
-      <div className="border-b border-[#1A1A1A] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
-        <h1 className="text-xs font-medium tracking-[0.15em] uppercase text-[#EDEDED]">SkySearch Control</h1>
+      {/* Header bar */}
+      <div className="border-b border-[#2A2A2A] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0 bg-[#0F0F0F]">
+        <h1 className="text-sm font-semibold tracking-wide text-white">Control Panel</h1>
         <div className="flex items-center gap-3">
           {/* Mobile tab switcher */}
-          <div className="flex lg:hidden border border-[#1A1A1A] p-0.5 gap-0.5">
+          <div className="flex lg:hidden border border-[#333] rounded-md overflow-hidden">
             <button
               onClick={() => setMobileTab("control")}
-              className={`px-3 py-1 text-[10px] font-mono tracking-wider transition-all ${mobileTab === "control" ? "bg-[#1A1A1A] text-[#EDEDED]" : "text-[#555]"}`}
+              className={`px-4 py-1.5 text-xs transition-all ${mobileTab === "control" ? "bg-[#2A2A2A] text-white" : "text-[#999]"}`}
             >
-              CONTROL
+              Control
             </button>
             <button
               onClick={() => setMobileTab("status")}
-              className={`px-3 py-1 text-[10px] font-mono tracking-wider transition-all ${mobileTab === "status" ? "bg-[#1A1A1A] text-[#EDEDED]" : "text-[#555]"}`}
+              className={`px-4 py-1.5 text-xs transition-all ${mobileTab === "status" ? "bg-[#2A2A2A] text-white" : "text-[#999]"}`}
             >
-              STATUS
+              Status
             </button>
           </div>
           {isSpeaking && (
-            <div className="hidden lg:flex items-center gap-2">
-              <WaveformBars active bars={7} color="#888" />
-              <span className="text-[9px] font-mono text-[#555] tracking-wider">AI SPEAKING</span>
-            </div>
+            <span className="hidden lg:block text-xs text-[#CCC]">Speaking...</span>
           )}
-          <span className="w-1.5 h-1.5 bg-[#22C55E]" />
-          <span className="hidden sm:block text-[10px] text-[#555] font-mono tracking-wider">
-            DJI MAVIC 3 PRO
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#22C55E] shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+            <span className="hidden sm:block text-xs text-[#CCC] font-medium">Connected</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_340px] min-h-0">
         {/* LEFT COLUMN */}
-        <div className={`flex-col border-r border-[#1A1A1A] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
+        <div className={`flex-col border-r border-[#2A2A2A] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
 
           {/* Video Feed */}
-          <div className="relative bg-[#0A0A0A] m-2 lg:m-3 border border-[#1A1A1A] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
-            <div
-              className="absolute left-0 right-0 h-px bg-[#CDFF00]/15"
-              style={{ top: `${scanY}%` }}
-            />
-            {/* Corner brackets */}
-            <div className="absolute top-3 left-3 w-6 h-6 border-t border-l border-[#2A2A2A]" />
-            <div className="absolute top-3 right-3 w-6 h-6 border-t border-r border-[#2A2A2A]" />
-            <div className="absolute bottom-10 left-3 w-6 h-6 border-b border-l border-[#2A2A2A]" />
-            <div className="absolute bottom-10 right-3 w-6 h-6 border-b border-r border-[#2A2A2A]" />
+          <div className="relative bg-[#0F0F0F] m-3 border border-[#333] rounded-lg overflow-hidden shrink-0 h-[28%] lg:h-[42%] shadow-lg">
             {/* Detection overlays */}
-            <div className="absolute top-[30%] left-[25%] w-20 h-28 border border-[#CDFF00]/60 border-dashed">
-              <div className="absolute -top-5 left-0 text-[8px] font-mono text-[#CDFF00] bg-[#CDFF00]/10 px-1.5 py-0.5 whitespace-nowrap">
-                PERSON 94%
+            <div className="absolute top-[30%] left-[25%] w-20 h-28 border-2 border-[#CDFF00] rounded shadow-[0_0_12px_rgba(205,255,0,0.4)]">
+              <div className="absolute -top-6 left-0 text-[10px] font-bold text-[#CDFF00] bg-[#CDFF00]/25 px-2 py-0.5 rounded whitespace-nowrap shadow-lg">
+                Person — 94%
               </div>
             </div>
-            <div className="absolute top-[40%] right-[20%] w-16 h-12 border border-[#F59E0B]/40 border-dashed">
-              <div className="absolute -top-5 left-0 text-[8px] font-mono text-[#F59E0B] bg-[#F59E0B]/10 px-1.5 py-0.5 whitespace-nowrap">
-                VEHICLE 87%
+            <div className="absolute top-[40%] right-[20%] w-16 h-12 border-2 border-[#F59E0B] rounded shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+              <div className="absolute -top-6 left-0 text-[10px] font-bold text-[#F59E0B] bg-[#F59E0B]/25 px-2 py-0.5 rounded whitespace-nowrap shadow-lg">
+                Vehicle — 87%
               </div>
             </div>
             {/* Background video */}
@@ -336,61 +280,46 @@ export default function ControlPanel() {
               muted
               loop
               playsInline
-              className="absolute inset-0 w-full h-full object-cover opacity-25"
+              className="absolute inset-0 w-full h-full object-cover opacity-40"
             >
               <source src="https://assets.mixkit.co/videos/506/506-720.mp4" type="video/mp4" />
             </video>
-            {/* HUD bar */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#1A1A1A] px-3 py-1.5 flex items-center gap-5">
-              <span className="text-[9px] font-mono text-[#555]">ALT 45.2m</span>
-              <span className="text-[9px] font-mono text-[#555]">SPD 12km/h</span>
-              <span className="text-[9px] font-mono text-[#555]">GPS 48.85°N 2.35°E</span>
-              <span className="text-[9px] font-mono text-[#CDFF00] ml-auto">AI: ACTIVE</span>
-              <span className="text-[9px] font-mono text-red-400 flex items-center gap-1">
-                <span className="w-1 h-1 bg-red-500" />
-                REC
+            {/* Bottom info bar */}
+            <div className="absolute bottom-0 left-0 right-0 bg-[#0F0F0F]/95 backdrop-blur-sm border-t border-[#333] px-4 py-2 flex items-center gap-6">
+              <span className="text-xs text-[#CCC] font-medium">45.2m altitude</span>
+              <span className="text-xs text-[#CCC] font-medium">12 km/h</span>
+              <span className="text-xs text-[#CDFF00] ml-auto flex items-center gap-1.5 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#CDFF00] shadow-[0_0_6px_rgba(205,255,0,0.8)]" />
+                AI Active
+              </span>
+              <span className="text-xs text-red-400 flex items-center gap-1.5 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_6px_rgba(239,68,68,0.8)]" />
+                Recording
               </span>
             </div>
           </div>
 
-          {/* Video controls */}
-          <div className="px-2 lg:px-3 pb-1 lg:pb-2 flex gap-1.5 shrink-0">
-            <button className="border border-[#1A1A1A] px-3 py-1.5 text-[10px] font-mono text-red-400 hover:bg-[#111] transition-colors tracking-wider">
-              REC
-            </button>
-            <button className="border border-[#1A1A1A] px-3 py-1.5 text-[10px] font-mono text-[#888] hover:bg-[#111] transition-colors tracking-wider">
-              CAPTURE
-            </button>
-            <button className="border border-[#1A1A1A] px-3 py-1.5 text-[10px] font-mono text-[#CDFF00] hover:bg-[#111] transition-colors tracking-wider">
-              AI: ON
-            </button>
-          </div>
-
-          {/* LLM Chat */}
-          <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#1A1A1A] overflow-hidden min-h-0">
+          {/* Chat */}
+          <div className="flex-1 flex flex-col m-3 mt-0 border border-[#333] rounded-lg overflow-hidden min-h-0 shadow-lg bg-[#0F0F0F]">
 
             {/* Chat header */}
-            <div className="px-4 py-3 border-b border-[#1A1A1A] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <h3 className="text-[10px] font-medium tracking-[0.15em] uppercase text-[#EDEDED]">Command Center</h3>
-                {isSpeaking && (
-                  <div className="flex items-center gap-1.5">
-                    <WaveformBars active bars={5} color="#888" />
-                    <span className="text-[8px] font-mono text-[#555] tracking-wider">SPEAKING</span>
-                  </div>
-                )}
-              </div>
-
+            <div className="px-4 py-3 border-b border-[#2A2A2A] flex items-center justify-between shrink-0">
+              <h3 className="text-sm font-semibold text-white">Command Center</h3>
               <button
                 onClick={toggleVoice}
                 title={voiceEnabled ? "Mute AI voice" : "Unmute AI voice"}
-                className={`flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-mono tracking-wider transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-all ${
                   voiceEnabled
-                    ? "bg-[#1A1A1A] text-[#EDEDED]"
-                    : "text-[#555] hover:text-[#888]"
+                    ? "bg-[#2A2A2A] text-white border border-[#333]"
+                    : "text-[#999] hover:text-white"
                 }`}
               >
-                VOICE {voiceEnabled ? "ON" : "OFF"}
+                {voiceEnabled ? (
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                )}
+                {voiceEnabled ? "Voice on" : "Voice off"}
               </button>
             </div>
 
@@ -399,24 +328,24 @@ export default function ControlPanel() {
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`border border-[#1A1A1A] p-3 max-w-[85%] ${
+                  className={`rounded-lg p-3 max-w-[85%] border ${
                     msg.role === "ai"
-                      ? "border-l-2 border-l-[#2A2A2A] mr-auto"
-                      : "border-l-2 border-l-[#555] ml-auto"
+                      ? "bg-[#151515] mr-auto border-[#2A2A2A]"
+                      : "bg-[#1F1F1F] ml-auto border-[#333]"
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[9px] font-mono text-[#555] tracking-wider">
-                      {msg.role === "ai" ? "SKYSEARCH AI" : "OPERATOR"}
+                    <p className="text-[10px] font-bold text-[#999] tracking-wide uppercase">
+                      {msg.role === "ai" ? "SkySearch AI" : "You"}
                     </p>
                     {msg.role === "ai" && speakingId === msg.id && (
-                      <WaveformBars active bars={4} color="#888" />
+                      <span className="text-[10px] text-[#CDFF00]">speaking...</span>
                     )}
                   </div>
-                  <p className="text-xs text-[#888] leading-relaxed">
+                  <p className="text-sm text-[#E5E5E5] leading-relaxed font-medium">
                     {msg.displayText}
                     {msg.role === "ai" && msg.displayText.length < msg.text.length && (
-                      <span className="inline-block w-0.5 h-3 bg-[#555] ml-0.5 align-middle animate-pulse" />
+                      <span className="inline-block w-0.5 h-3.5 bg-[#CDFF00] ml-0.5 align-middle animate-pulse" />
                     )}
                   </p>
                 </div>
@@ -425,74 +354,71 @@ export default function ControlPanel() {
             </div>
 
             {/* Input area */}
-            <div className="p-3 border-t border-[#1A1A1A] shrink-0">
+            <div className="p-3 border-t border-[#2A2A2A] shrink-0 bg-[#0F0F0F]">
 
               {(isListening || transcript) && (
-                <div className="mb-2 px-3 py-2 border border-[#1A1A1A] bg-[#111] flex items-center gap-2.5">
-                  <WaveformBars active={isListening} bars={6} color="#888" />
-                  <span className="text-[10px] text-[#888] font-mono flex-1 truncate">
-                    {isListening && !transcript ? "Listening…" : transcript || "Processing…"}
+                <div className="mb-2 px-3 py-2.5 rounded-lg border border-[#333] bg-[#1A1A1A] flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                  <span className="text-sm text-[#E5E5E5] flex-1 truncate font-medium">
+                    {isListening && !transcript ? "Listening..." : transcript || "Processing..."}
                   </span>
                   {isListening && (
                     <button
                       onClick={stopListening}
-                      className="text-[8px] font-mono text-[#555] hover:text-[#EDEDED] transition-colors tracking-wider"
+                      className="text-xs text-[#CCC] hover:text-white transition-colors font-medium"
                     >
-                      STOP
+                      Stop
                     </button>
                   )}
                 </div>
               )}
 
-              <div className="flex gap-1.5">
+              {/* Quick commands */}
+              <div className="flex gap-2 mb-2 overflow-x-auto pb-1">
+                {quickCommands.map((cmd) => (
+                  <button
+                    key={cmd}
+                    onClick={() => sendMessage(cmd)}
+                    className="border border-[#333] rounded-full px-3.5 py-1.5 text-xs text-[#BBB] font-medium hover:text-white hover:border-[#CDFF00]/50 hover:bg-[#1A1A1A] transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-                  placeholder="Type a command…"
-                  className="flex-1 bg-[#0A0A0A] border border-[#1A1A1A] px-4 py-3 text-xs text-[#EDEDED] placeholder:text-[#333] focus:outline-none focus:border-[#2A2A2A]"
+                  placeholder="Type a command..."
+                  className="flex-1 bg-[#1A1A1A] border border-[#333] rounded-lg px-4 py-3 text-sm text-white placeholder:text-[#777] focus:outline-none focus:border-[#CDFF00]/50 focus:shadow-[0_0_0_3px_rgba(205,255,0,0.1)] transition-all"
                 />
 
                 <button
                   onClick={isListening ? stopListening : startListening}
-                  title={isListening ? "Stop listening" : "Start voice command"}
-                  className={`w-10 h-10 flex items-center justify-center transition-all ${
+                  title={isListening ? "Stop listening" : "Voice command"}
+                  className={`w-11 h-11 rounded-lg flex items-center justify-center transition-all border ${
                     isListening
-                      ? "bg-[#EDEDED]"
-                      : "bg-[#1A1A1A] hover:bg-[#2A2A2A]"
+                      ? "bg-red-500/25 border-red-500/50 shadow-[0_0_12px_rgba(239,68,68,0.4)]"
+                      : "bg-[#2A2A2A] hover:bg-[#333] border-[#444]"
                   }`}
                 >
-                  {isListening ? (
-                    <WaveformBars active bars={5} color="#0A0A0A" />
-                  ) : (
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#888]" fill="currentColor">
-                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                      <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-                    </svg>
-                  )}
+                  <svg viewBox="0 0 24 24" className={`w-4.5 h-4.5 ${isListening ? "text-red-400" : "text-[#CCC]"}`} fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                  </svg>
                 </button>
 
                 <button
                   onClick={() => sendMessage(input)}
-                  className="w-10 h-10 bg-[#EDEDED] flex items-center justify-center hover:bg-white transition-colors"
+                  className="w-11 h-11 bg-[#CDFF00] rounded-lg flex items-center justify-center hover:bg-[#d8ff33] transition-colors"
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#0A0A0A]" fill="currentColor">
+                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-[#0A0A0A]" fill="currentColor">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
                 </button>
-              </div>
-
-              <div className="hidden sm:flex gap-1.5 mt-2 overflow-x-auto pb-1">
-                {quickCommands.map((cmd) => (
-                  <button
-                    key={cmd}
-                    onClick={() => sendMessage(cmd)}
-                    className="border border-[#1A1A1A] px-3 py-1 text-[10px] font-mono text-[#555] hover:text-[#EDEDED] hover:border-[#2A2A2A] transition-colors whitespace-nowrap shrink-0 tracking-wider"
-                  >
-                    {cmd}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -501,115 +427,127 @@ export default function ControlPanel() {
         {/* RIGHT COLUMN */}
         <div className={`flex-col overflow-y-auto ${mobileTab === "status" ? "flex" : "hidden"} lg:flex`}>
 
-          {/* Telemetry */}
+          {/* Drone Status */}
           <div className="p-4">
-            <h3 className="text-[9px] font-medium text-[#555] uppercase tracking-[0.2em] mb-4">
-              Telemetry
+            <h3 className="text-xs font-semibold text-[#CCC] mb-3 uppercase tracking-wider">
+              Drone Status
             </h3>
-            <div className="border border-[#1A1A1A] p-4 space-y-4">
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-lg p-4 space-y-4 shadow-lg">
+              {/* Battery with bar */}
               <div>
-                <div className="flex justify-between text-[10px] mb-1.5">
-                  <span className="text-[#555] font-mono">BATTERY</span>
-                  <span className="font-mono text-[#EDEDED]">78%</span>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-[#CCC] font-medium">Battery</span>
+                  <span className="text-white font-bold">78%</span>
                 </div>
-                <div className="w-full h-1 bg-[#1A1A1A]">
-                  <div className="h-full w-[78%] bg-[#22C55E]" />
+                <div className="w-full h-2 bg-[#2A2A2A] rounded-full overflow-hidden border border-[#333]">
+                  <div className="h-full w-[78%] bg-[#22C55E] rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                 </div>
               </div>
-              {[
-                { label: "ALTITUDE",    value: "45.2m" },
-                { label: "SPEED",       value: "12 km/h" },
-                { label: "GPS",         value: "48.85\u00B0N, 2.35\u00B0E" },
-                { label: "SIGNAL",      value: "Strong" },
-                { label: "TEMP",        value: "32\u00B0C" },
-                { label: "FLIGHT TIME", value: "00:14:32" },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between text-[10px]">
-                  <span className="text-[#555] font-mono">{item.label}</span>
-                  <span className="font-mono text-[#EDEDED]">{item.value}</span>
-                </div>
-              ))}
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Altitude",    value: "45.2m" },
+                  { label: "Speed",       value: "12 km/h" },
+                  { label: "Signal",      value: "Strong" },
+                  { label: "Temperature", value: "32\u00B0C" },
+                  { label: "Flight time", value: "14 min" },
+                  { label: "GPS",         value: "48.85\u00B0N" },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <p className="text-xs text-[#999] mb-0.5 font-medium">{item.label}</p>
+                    <p className="text-sm text-white font-semibold">{item.value}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* GPS Map */}
+          {/* Map */}
           <div className="px-4 pb-4">
-            <h3 className="text-[9px] font-medium text-[#555] uppercase tracking-[0.2em] mb-4">
-              GPS Tracker
+            <h3 className="text-xs font-semibold text-[#CCC] mb-3 uppercase tracking-wider">
+              Live Location
             </h3>
-            <div className="border border-[#1A1A1A] overflow-hidden">
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-lg overflow-hidden shadow-lg">
               <svg viewBox="0 0 300 180" className="w-full" style={{ display: "block" }}>
-                <rect width="300" height="180" fill="#0A0A0A" />
+                <rect width="300" height="180" fill="#151515" rx="0" />
+                {/* Grid */}
                 {[0,1,2,3,4].map((i) => (
-                  <line key={`v${i}`} x1={i * 75} y1="0" x2={i * 75} y2="180" stroke="#1A1A1A" strokeWidth="1" />
+                  <line key={`v${i}`} x1={i * 75} y1="0" x2={i * 75} y2="180" stroke="#2A2A2A" strokeWidth="1" />
                 ))}
                 {[0,1,2,3].map((i) => (
-                  <line key={`h${i}`} x1="0" y1={i * 60} x2="300" y2={i * 60} stroke="#1A1A1A" strokeWidth="1" />
+                  <line key={`h${i}`} x1="0" y1={i * 60} x2="300" y2={i * 60} stroke="#2A2A2A" strokeWidth="1" />
                 ))}
-                {[["A", 37, 20], ["B", 187, 20], ["C", 37, 110], ["D", 187, 110]].map(([label, x, y]) => (
-                  <text key={label as string} x={x as number} y={y as number} fill="#1A1A1A" fontSize="22" fontWeight="bold" fontFamily="monospace">{label}</text>
-                ))}
-                <circle cx="150" cy="90" r="4" fill="none" stroke="#22C55E" strokeWidth="1" />
-                <text x="155" y="86" fill="#555" fontSize="7" fontFamily="monospace">HOME</text>
-                <circle cx="150" cy="90" r="60" fill="none" stroke="#1A1A1A" strokeWidth="1" strokeDasharray="4 3" />
+                {/* Home marker */}
+                <circle cx="150" cy="90" r="5" fill="none" stroke="#22C55E" strokeWidth="2" />
+                <text x="160" y="93" fill="#AAA" fontSize="9" fontFamily="sans-serif" fontWeight="600">Home</text>
+                {/* Search radius */}
+                <circle cx="150" cy="90" r="60" fill="none" stroke="#333" strokeWidth="1.5" strokeDasharray="4 3" />
+                {/* Flight path */}
                 {flightPath.length > 1 && (
                   <polyline
                     points={flightPath.map((p) => `${p.x},${p.y}`).join(" ")}
                     fill="none"
-                    stroke="#555"
-                    strokeWidth="1"
-                    strokeOpacity="0.5"
+                    stroke="#888"
+                    strokeWidth="2"
+                    strokeOpacity="0.7"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
                 )}
-                <circle cx={dronePos.x} cy={dronePos.y} r="3" fill="#CDFF00" />
-                <circle cx={dronePos.x} cy={dronePos.y} r="1.5" fill="#0A0A0A" />
+                {/* Drone position */}
+                <circle cx={dronePos.x} cy={dronePos.y} r="5" fill="#CDFF00" filter="url(#glow)" />
+                <circle cx={dronePos.x} cy={dronePos.y} r="2.5" fill="#0F0F0F" />
+                <defs>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
               </svg>
-              <div className="px-3 py-2 border-t border-[#1A1A1A] flex items-center justify-between">
-                <span className="text-[8px] font-mono text-[#555] tracking-wider">LIVE TRACK</span>
-                <span className="text-[8px] font-mono text-[#888]">
-                  {(48.85 + (dronePos.x - 150) * 0.0002).toFixed(4)}°N&nbsp;
+              <div className="px-4 py-2.5 border-t border-[#2A2A2A] flex items-center justify-between">
+                <span className="text-xs text-[#AAA] font-medium">Live tracking</span>
+                <span className="text-xs text-[#CCC] font-mono">
+                  {(48.85 + (dronePos.x - 150) * 0.0002).toFixed(4)}°N,{" "}
                   {(2.35 + (dronePos.y - 90) * 0.0002).toFixed(4)}°E
                 </span>
               </div>
             </div>
           </div>
 
-          {/* AI Status */}
+          {/* AI Info */}
           <div className="px-4 pb-4">
-            <h3 className="text-[9px] font-medium text-[#555] uppercase tracking-[0.2em] mb-4">
-              AI Status
+            <h3 className="text-xs font-semibold text-[#CCC] mb-3 uppercase tracking-wider">
+              AI Detection
             </h3>
-            <div className="border border-[#1A1A1A] p-4 space-y-3">
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-lg p-4 grid grid-cols-2 gap-3 shadow-lg">
               {[
-                { label: "MODEL",            value: "Active",   accent: "#22C55E" },
-                { label: "FACES DB",         value: "12 loaded", accent: "#22C55E" },
-                { label: "OBJECTS DETECTED", value: "847",       accent: "#CDFF00" },
-                { label: "AREA SCANNED",     value: "3.2 km\u00B2", accent: "#CDFF00" },
+                { label: "Status",      value: "Active",     color: "#22C55E" },
+                { label: "Known faces", value: "12 loaded",  color: "#22C55E" },
+                { label: "Detections",  value: "847",        color: "#CDFF00" },
+                { label: "Area covered",value: "3.2 km\u00B2",color: "#CDFF00" },
               ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-1" style={{ backgroundColor: item.accent }} />
-                    <span className="text-[#555] font-mono">{item.label}</span>
-                  </div>
-                  <span className="font-mono text-[#EDEDED]">{item.value}</span>
+                <div key={item.label}>
+                  <p className="text-xs text-[#999] mb-0.5 font-medium">{item.label}</p>
+                  <p className="text-sm font-bold" style={{ color: item.color }}>{item.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Notifications */}
+          {/* Events */}
           <div className="px-4 pb-4 flex-1">
-            <h3 className="text-[9px] font-medium text-[#555] uppercase tracking-[0.2em] mb-4">
-              Events
+            <h3 className="text-xs font-semibold text-[#CCC] mb-3 uppercase tracking-wider">
+              Recent Activity
             </h3>
-            <div className="border border-[#1A1A1A] p-4 space-y-3">
+            <div className="bg-[#151515] border border-[#2A2A2A] rounded-lg p-4 space-y-3 shadow-lg">
               {notifications.map((n, i) => (
-                <div key={i} className="flex gap-3 text-[10px]">
-                  <span className="font-mono text-[#333] shrink-0">{n.time}</span>
-                  <span className="w-1 h-1 mt-1.5 shrink-0" style={{ backgroundColor: n.accent }} />
-                  <span className="text-[#888]">{n.text}</span>
+                <div key={i} className="flex gap-3 items-start">
+                  <span className="text-xs text-[#888] shrink-0 mt-0.5 font-mono font-medium">{n.time}</span>
+                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 shadow-[0_0_6px_currentColor]" style={{ backgroundColor: n.accent, color: n.accent }} />
+                  <span className="text-sm text-[#CCC] font-medium">{n.text}</span>
                 </div>
               ))}
             </div>

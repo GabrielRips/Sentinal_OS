@@ -259,33 +259,33 @@ function InteractiveDemo() {
   const quickCmds = ["Search the north field", "Find my friend", "Take a photo", "Return home"];
 
   return (
-    <div className="border border-[#1A1A1A] bg-[#0A0A0A] max-w-2xl mx-auto">
+    <div className="border border-[#2A2A2A] bg-[#0F0F0F] max-w-2xl mx-auto shadow-xl">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-[#1A1A1A] flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-[#2A2A2A] flex items-center justify-between bg-[#0A0A0A]">
         <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-[#22C55E] animate-pulse-dot" />
-          <span className="text-[10px] font-mono text-[#AAA] tracking-wider uppercase">SkySearch AI</span>
+          <span className="w-1.5 h-1.5 bg-[#22C55E] animate-pulse-dot shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+          <span className="text-[10px] font-mono text-[#E5E5E5] tracking-wider uppercase font-semibold">SkySearch AI</span>
         </div>
-        <span className="text-[9px] font-mono text-[#777] tracking-wider">INTERACTIVE DEMO</span>
+        <span className="text-[9px] font-mono text-[#AAA] tracking-wider font-medium">INTERACTIVE DEMO</span>
       </div>
 
       {/* Chat area */}
       <div ref={chatRef} className="h-[260px] overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
           <div className="h-full flex items-center justify-center">
-            <p className="text-sm text-[#777] text-center">
+            <p className="text-sm text-[#BBB] text-center font-medium">
               Type a command below or click a quick action.
               <br />
-              <span className="text-[#999]">Try: &ldquo;search the area&rdquo; or &ldquo;find my friend&rdquo;</span>
+              <span className="text-[#E5E5E5] font-semibold">Try: &ldquo;search the area&rdquo; or &ldquo;find my friend&rdquo;</span>
             </p>
           </div>
         )}
         {messages.map((msg, i) => (
-          <div key={i} className={`${msg.role === "ai" ? "border-l-2 border-l-[#CDFF00]/40 bg-[#111] pl-4 pr-3 py-2.5 mr-6" : "border-l-2 border-l-[#666] pl-4 pr-3 py-2.5 ml-6"}`}>
-            <p className="text-[9px] font-mono text-[#888] tracking-wider mb-1">
+          <div key={i} className={`${msg.role === "ai" ? "border-l-2 border-l-[#CDFF00]/60 bg-[#1A1A1A] pl-4 pr-3 py-2.5 mr-6 shadow-md" : "border-l-2 border-l-[#999] bg-[#151515] pl-4 pr-3 py-2.5 ml-6 shadow-md"}`}>
+            <p className="text-[9px] font-mono text-[#BBB] tracking-wider mb-1 font-bold">
               {msg.role === "ai" ? "SKYSEARCH AI" : "YOU"}
             </p>
-            <p className="text-[13px] text-[#CCC] leading-relaxed">
+            <p className="text-[13px] text-white leading-relaxed font-medium">
               {msg.displayText}
               {msg.role === "ai" && msg.displayText.length < msg.text.length && (
                 <span className="inline-block w-0.5 h-3.5 bg-[#CDFF00] ml-0.5 align-middle animate-pulse" />
@@ -301,7 +301,7 @@ function InteractiveDemo() {
           <button
             key={cmd}
             onClick={() => send(cmd)}
-            className="border border-[#2A2A2A] px-3 py-1.5 text-[10px] font-mono text-[#AAA] hover:text-[#EDEDED] hover:border-[#CDFF00]/30 hover:bg-[#CDFF00]/5 transition-all tracking-wider"
+            className="border border-[#333] px-3 py-1.5 text-[10px] font-mono text-[#CCC] font-medium hover:text-white hover:border-[#CDFF00]/50 hover:bg-[#CDFF00]/10 transition-all tracking-wider"
           >
             {cmd}
           </button>
@@ -309,18 +309,18 @@ function InteractiveDemo() {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t border-[#1A1A1A] flex gap-2">
+      <div className="p-3 border-t border-[#2A2A2A] flex gap-2 bg-[#0A0A0A]">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input)}
           placeholder="Type a command to the drone..."
-          className="flex-1 bg-[#111] border border-[#2A2A2A] px-4 py-3 text-sm text-[#EDEDED] placeholder:text-[#666] focus:outline-none focus:border-[#CDFF00]/40 transition-colors font-mono"
+          className="flex-1 bg-[#1A1A1A] border border-[#333] px-4 py-3 text-sm text-white placeholder:text-[#888] focus:outline-none focus:border-[#CDFF00]/50 focus:shadow-[0_0_0_3px_rgba(205,255,0,0.1)] transition-all font-mono font-medium"
         />
         <button
           onClick={() => send(input)}
-          className="px-4 py-3 bg-[#CDFF00] text-[#0A0A0A] font-bold text-xs tracking-wider hover:bg-[#d8ff33] transition-colors"
+          className="px-4 py-3 bg-[#CDFF00] text-[#0A0A0A] font-bold text-xs tracking-wider hover:bg-[#d8ff33] transition-colors shadow-lg hover:shadow-[#CDFF00]/30"
         >
           SEND
         </button>
@@ -374,15 +374,15 @@ function LiveFeedTile() {
 
   return (
     <div className={`bento-tile row-span-2 relative group ${flash ? "alert-flash" : ""}`}>
-      <div className="absolute top-3 left-3 z-10 text-[9px] font-mono text-[#888] tracking-wider uppercase">Live Feed</div>
-      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-40">
+      <div className="absolute top-3 left-3 z-10 text-[9px] font-mono text-[#CCC] tracking-wider uppercase font-bold">Live Feed</div>
+      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-50">
         <source src="https://assets.mixkit.co/videos/506/506-720.mp4" type="video/mp4" />
       </video>
-      <div className="absolute left-0 right-0 h-px bg-[#CDFF00]/35 z-20" style={{ top: `${scanY}%` }} />
-      <div className="absolute top-6 left-3 w-5 h-5 border-t border-l border-[#CDFF00]/35 z-10" />
-      <div className="absolute top-6 right-3 w-5 h-5 border-t border-r border-[#CDFF00]/35 z-10" />
-      <div className="absolute bottom-8 left-3 w-5 h-5 border-b border-l border-[#CDFF00]/35 z-10" />
-      <div className="absolute bottom-8 right-3 w-5 h-5 border-b border-r border-[#CDFF00]/35 z-10" />
+      <div className="absolute left-0 right-0 h-px bg-[#CDFF00]/60 shadow-[0_0_8px_rgba(205,255,0,0.4)] z-20" style={{ top: `${scanY}%` }} />
+      <div className="absolute top-6 left-3 w-5 h-5 border-t border-l border-[#CDFF00]/60 z-10" />
+      <div className="absolute top-6 right-3 w-5 h-5 border-t border-r border-[#CDFF00]/60 z-10" />
+      <div className="absolute bottom-8 left-3 w-5 h-5 border-b border-l border-[#CDFF00]/60 z-10" />
+      <div className="absolute bottom-8 right-3 w-5 h-5 border-b border-r border-[#CDFF00]/60 z-10" />
       {/* Crosshair */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none opacity-40">
         <div className="w-10 h-10 relative">
@@ -391,22 +391,22 @@ function LiveFeedTile() {
         </div>
       </div>
       {dets.map((d, i) => (
-        <div key={`${detIdx}-${i}`} className="absolute border border-dashed z-20 animate-detection-appear"
-          style={{ top: `${d.top}%`, left: `${d.left}%`, width: `${d.w}%`, height: `${d.h}%`, borderColor: `${d.color}80` }}>
-          <div className="absolute -top-4 left-0 text-[8px] font-mono px-1.5 py-0.5 whitespace-nowrap"
-            style={{ color: d.color, backgroundColor: `${d.color}18` }}>{d.label} {d.confidence}%</div>
-          <div className="absolute -top-px -left-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -top-px -right-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -bottom-px -left-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -bottom-px -right-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
+        <div key={`${detIdx}-${i}`} className="absolute border-2 border-dashed z-20 animate-detection-appear"
+          style={{ top: `${d.top}%`, left: `${d.left}%`, width: `${d.w}%`, height: `${d.h}%`, borderColor: d.color, boxShadow: `0 0 12px ${d.color}40` }}>
+          <div className="absolute -top-5 left-0 text-[8px] font-mono font-bold px-2 py-0.5 whitespace-nowrap shadow-md"
+            style={{ color: d.color, backgroundColor: `${d.color}30` }}>{d.label} {d.confidence}%</div>
+          <div className="absolute -top-px -left-px w-1.5 h-1.5" style={{ backgroundColor: d.color }} />
+          <div className="absolute -top-px -right-px w-1.5 h-1.5" style={{ backgroundColor: d.color }} />
+          <div className="absolute -bottom-px -left-px w-1.5 h-1.5" style={{ backgroundColor: d.color }} />
+          <div className="absolute -bottom-px -right-px w-1.5 h-1.5" style={{ backgroundColor: d.color }} />
         </div>
       ))}
-      {flash && <div className="absolute z-10 w-24 h-24 rounded-full border border-[#CDFF00]/30"
+      {flash && <div className="absolute z-10 w-24 h-24 rounded-full border border-[#CDFF00]/50"
         style={{ top: `${dets[0]?.top ?? 50}%`, left: `${dets[0]?.left ?? 50}%`, animation: "pulse-ring 1.5s ease-out forwards" }} />}
-      <div className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A]/90 border-t border-[#1A1A1A] px-3 py-1.5 flex items-center gap-4 z-20">
-        <span className="text-[9px] font-mono text-red-400 flex items-center gap-1"><span className="w-1 h-1 bg-red-500 animate-pulse-dot" />REC</span>
-        <span className="text-[9px] font-mono text-[#999]">{fmt(recTime)}</span>
-        <span className="text-[9px] font-mono text-[#CDFF00] ml-auto">AI: ACTIVE</span>
+      <div className="absolute bottom-0 left-0 right-0 bg-[#0F0F0F]/95 border-t border-[#333] px-3 py-1.5 flex items-center gap-4 z-20">
+        <span className="text-[9px] font-mono text-red-400 flex items-center gap-1 font-bold"><span className="w-1 h-1 bg-red-500 animate-pulse-dot shadow-[0_0_6px_rgba(239,68,68,0.6)]" />REC</span>
+        <span className="text-[9px] font-mono text-[#E5E5E5] font-medium">{fmt(recTime)}</span>
+        <span className="text-[9px] font-mono text-[#CDFF00] ml-auto font-bold">AI: ACTIVE</span>
       </div>
     </div>
   );
@@ -447,9 +447,9 @@ function ChatTile() {
 
   return (
     <div className="bento-tile flex flex-col">
-      <div className="px-4 pt-3 pb-2 border-b border-[#1A1A1A] flex items-center gap-2">
-        <span className="w-1.5 h-1.5 bg-[#22C55E] animate-pulse-dot" />
-        <span className="text-[9px] font-mono text-[#888] tracking-wider uppercase">Command Center</span>
+      <div className="px-4 pt-3 pb-2 border-b border-[#2A2A2A] flex items-center gap-2">
+        <span className="w-1.5 h-1.5 bg-[#22C55E] animate-pulse-dot shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+        <span className="text-[9px] font-mono text-[#CCC] tracking-wider uppercase font-bold">Command Center</span>
       </div>
       <div className="flex-1 p-3 space-y-2 overflow-hidden">
         {chatScript.slice(0, visibleCount + 1).map((msg, i) => {
@@ -458,9 +458,9 @@ function ChatTile() {
           if (!text) return null;
           return (
             <div key={`${visibleCount}-${i}`}
-              className={`p-2.5 ${msg.role === "ai" ? "border-l-2 border-l-[#CDFF00]/40 bg-[#111] mr-2" : "border-l-2 border-l-[#666] ml-2"}`}>
-              <p className="text-[8px] font-mono text-[#888] tracking-wider mb-1">{msg.role === "ai" ? "SKYSEARCH" : "OPERATOR"}</p>
-              <p className="text-[11px] text-[#CCC] leading-relaxed">
+              className={`p-2.5 ${msg.role === "ai" ? "border-l-2 border-l-[#CDFF00]/60 bg-[#1A1A1A] mr-2" : "border-l-2 border-l-[#999] bg-[#151515] ml-2"}`}>
+              <p className="text-[8px] font-mono text-[#BBB] tracking-wider mb-1 font-bold">{msg.role === "ai" ? "SKYSEARCH" : "OPERATOR"}</p>
+              <p className="text-[11px] text-white leading-relaxed font-medium">
                 {text}
                 {isTyping && msg.role === "ai" && displayLen < msg.text.length && <span className="inline-block w-0.5 h-3 bg-[#CDFF00] ml-0.5 align-middle animate-pulse" />}
               </p>
@@ -483,19 +483,19 @@ function StatsTile() {
 
   return (
     <div className="bento-tile flex flex-col justify-between p-4">
-      <span className="text-[9px] font-mono text-[#888] tracking-wider uppercase">Mission Metrics</span>
+      <span className="text-[9px] font-mono text-[#CCC] tracking-wider uppercase font-bold">Mission Metrics</span>
       <div className="space-y-4">
         <div>
-          <p className="text-3xl font-mono text-[#EDEDED] tracking-tight leading-none">{objects}</p>
-          <p className="text-[9px] font-mono text-[#888] tracking-wider uppercase mt-1">Objects Detected</p>
+          <p className="text-3xl font-mono text-white tracking-tight leading-none font-bold">{objects}</p>
+          <p className="text-[9px] font-mono text-[#BBB] tracking-wider uppercase mt-1 font-medium">Objects Detected</p>
         </div>
         <div>
-          <p className="text-3xl font-mono text-[#CDFF00] tracking-tight leading-none crt-glow">{area}<span className="text-lg"> km&sup2;</span></p>
-          <p className="text-[9px] font-mono text-[#888] tracking-wider uppercase mt-1">Area Scanned</p>
+          <p className="text-3xl font-mono text-[#CDFF00] tracking-tight leading-none crt-glow font-bold">{area}<span className="text-lg"> km&sup2;</span></p>
+          <p className="text-[9px] font-mono text-[#BBB] tracking-wider uppercase mt-1 font-medium">Area Scanned</p>
         </div>
         <div>
-          <p className="text-3xl font-mono text-[#EDEDED] tracking-tight leading-none">&lt;2<span className="text-lg">s</span></p>
-          <p className="text-[9px] font-mono text-[#888] tracking-wider uppercase mt-1">Response Time</p>
+          <p className="text-3xl font-mono text-white tracking-tight leading-none font-bold">&lt;2<span className="text-lg">s</span></p>
+          <p className="text-[9px] font-mono text-[#BBB] tracking-wider uppercase mt-1 font-medium">Response Time</p>
         </div>
       </div>
     </div>
@@ -520,7 +520,7 @@ function VoiceTile() {
 
   return (
     <div className="bento-tile flex flex-col items-center justify-center gap-4 text-center relative">
-      <div className="absolute top-3 left-3"><span className="text-[9px] font-mono text-[#888] tracking-wider uppercase">Voice Input</span></div>
+      <div className="absolute top-3 left-3"><span className="text-[9px] font-mono text-[#CCC] tracking-wider uppercase font-bold">Voice Input</span></div>
       <div className="flex items-end gap-[2px] h-8">
         {Array.from({ length: 24 }).map((_, i) => (
           <div key={i} className="w-[2px] bg-[#CDFF00] rounded-full"
@@ -529,10 +529,10 @@ function VoiceTile() {
               transform: charCount > 0 ? undefined : "scaleY(0.2)", transition: "opacity 0.3s" }} />
         ))}
       </div>
-      <p className="text-sm font-mono text-[#CCC] h-5">
+      <p className="text-sm font-mono text-white h-5 font-medium">
         {charCount > 0
-          ? <>&ldquo;{voiceCommands[cmdIdx].slice(0, charCount)}<span className="inline-block w-0.5 h-3.5 bg-[#CDFF00]/60 ml-px align-middle animate-pulse" />&rdquo;</>
-          : <span className="text-[#666]">awaiting input...</span>}
+          ? <>&ldquo;{voiceCommands[cmdIdx].slice(0, charCount)}<span className="inline-block w-0.5 h-3.5 bg-[#CDFF00] ml-px align-middle animate-pulse" />&rdquo;</>
+          : <span className="text-[#999]">awaiting input...</span>}
       </p>
     </div>
   );
@@ -551,19 +551,19 @@ const droneModels = [
 function DronesTile() {
   return (
     <div className="bento-tile flex flex-col p-4">
-      <span className="text-[9px] font-mono text-[#888] tracking-wider uppercase mb-3">Fleet Status</span>
+      <span className="text-[9px] font-mono text-[#CCC] tracking-wider uppercase mb-3 font-bold">Fleet Status</span>
       <div className="flex-1 space-y-2">
         {droneModels.map((m) => (
           <div key={m.name} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className={`w-1.5 h-1.5 ${m.status === "CONNECTED" ? "bg-[#CDFF00] animate-pulse-dot" : "bg-[#333]"}`} />
-              <span className="text-[11px] font-mono text-[#CCC]">{m.name}</span>
+              <span className={`w-1.5 h-1.5 ${m.status === "CONNECTED" ? "bg-[#CDFF00] animate-pulse-dot shadow-[0_0_6px_rgba(205,255,0,0.6)]" : "bg-[#555]"}`} />
+              <span className="text-[11px] font-mono text-white font-medium">{m.name}</span>
             </div>
-            <span className={`text-[8px] font-mono tracking-wider ${m.status === "CONNECTED" ? "text-[#CDFF00]" : "text-[#777]"}`}>{m.status}</span>
+            <span className={`text-[8px] font-mono tracking-wider font-bold ${m.status === "CONNECTED" ? "text-[#CDFF00]" : "text-[#AAA]"}`}>{m.status}</span>
           </div>
         ))}
       </div>
-      <div className="pt-2 border-t border-[#1A1A1A] mt-2"><span className="text-[10px] font-mono text-[#CDFF00]">50+ DJI drones compatible</span></div>
+      <div className="pt-2 border-t border-[#2A2A2A] mt-2"><span className="text-[10px] font-mono text-[#CDFF00] font-semibold">50+ DJI drones compatible</span></div>
     </div>
   );
 }
@@ -586,20 +586,20 @@ function MapTile() {
   return (
     <div className="bento-tile">
       <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
-        <span className="text-[9px] font-mono text-[#888] tracking-wider uppercase">GPS Tracker</span>
-        <span className="text-[8px] font-mono text-[#CDFF00] animate-pulse-dot">LIVE</span>
+        <span className="text-[9px] font-mono text-[#CCC] tracking-wider uppercase font-bold">GPS Tracker</span>
+        <span className="text-[8px] font-mono text-[#CDFF00] animate-pulse-dot font-bold">LIVE</span>
       </div>
       <svg viewBox="0 0 300 180" className="w-full h-full" style={{ display: "block" }}>
         <rect width="300" height="180" fill="#050505" />
-        {[0,1,2,3,4].map((i) => <line key={`v${i}`} x1={i*75} y1="0" x2={i*75} y2="180" stroke="#222" strokeWidth="1" />)}
-        {[0,1,2,3].map((i) => <line key={`h${i}`} x1="0" y1={i*60} x2="300" y2={i*60} stroke="#222" strokeWidth="1" />)}
-        {([["A",37,20],["B",187,20],["C",37,110],["D",187,110]] as const).map(([l,x,y]) => <text key={l} x={x} y={y} fill="#333" fontSize="22" fontWeight="bold" fontFamily="monospace">{l}</text>)}
-        <circle cx="150" cy="90" r="60" fill="none" stroke="#333" strokeWidth="1" strokeDasharray="4 3" />
-        <circle cx="150" cy="90" r="3" fill="none" stroke="#22C55E" strokeWidth="1" />
-        {path.length > 1 && <polyline points={path.map((p) => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#CDFF00" strokeWidth="1" strokeOpacity="0.45" strokeLinecap="round" />}
+        {[0,1,2,3,4].map((i) => <line key={`v${i}`} x1={i*75} y1="0" x2={i*75} y2="180" stroke="#2A2A2A" strokeWidth="1" />)}
+        {[0,1,2,3].map((i) => <line key={`h${i}`} x1="0" y1={i*60} x2="300" y2={i*60} stroke="#2A2A2A" strokeWidth="1" />)}
+        {([["A",37,20],["B",187,20],["C",37,110],["D",187,110]] as const).map(([l,x,y]) => <text key={l} x={x} y={y} fill="#555" fontSize="22" fontWeight="bold" fontFamily="monospace">{l}</text>)}
+        <circle cx="150" cy="90" r="60" fill="none" stroke="#444" strokeWidth="1.5" strokeDasharray="4 3" />
+        <circle cx="150" cy="90" r="3" fill="none" stroke="#22C55E" strokeWidth="2" />
+        {path.length > 1 && <polyline points={path.map((p) => `${p.x},${p.y}`).join(" ")} fill="none" stroke="#CDFF00" strokeWidth="2" strokeOpacity="0.7" strokeLinecap="round" />}
         <circle cx={dronePos.x} cy={dronePos.y} r="12" fill="url(#droneGlow)" />
-        <circle cx={dronePos.x} cy={dronePos.y} r="3" fill="#CDFF00" />
-        <circle cx={dronePos.x} cy={dronePos.y} r="1.5" fill="#0A0A0A" />
+        <circle cx={dronePos.x} cy={dronePos.y} r="4" fill="#CDFF00" />
+        <circle cx={dronePos.x} cy={dronePos.y} r="2" fill="#0F0F0F" />
         <defs><radialGradient id="droneGlow"><stop offset="0%" stopColor="#CDFF00" stopOpacity="0.25" /><stop offset="100%" stopColor="#CDFF00" stopOpacity="0" /></radialGradient></defs>
       </svg>
     </div>
@@ -1046,11 +1046,11 @@ function wait(ms: number): Promise<void> {
 function TelemetryTicker() {
   const items = ["ALT 45.2m","SPD 12.4 km/h","BAT 82%","GPS 48.85°N 2.35°E","SIGNAL STRONG","TEMP 32°C","WIND 8 km/h NW","MODE AUTONOMOUS","AI ACTIVE","OBJECTS 847","AREA 3.2 km²","FLIGHT 00:14:32"];
   return (
-    <div className="border-y border-[#1A1A1A] py-3 overflow-hidden">
+    <div className="border-y border-[#2A2A2A] py-3 overflow-hidden bg-[#0A0A0A]">
       <div className="flex animate-ticker whitespace-nowrap">
         {[...items, ...items].map((item, i) => (
-          <span key={i} className="mx-8 text-[10px] font-mono tracking-[0.15em] text-[#777]">
-            <span className="text-[#CDFF00]/60 mr-2">//</span>{item}
+          <span key={i} className="mx-8 text-[10px] font-mono tracking-[0.15em] text-[#BBB] font-medium">
+            <span className="text-[#CDFF00] mr-2 font-bold">//</span>{item}
           </span>
         ))}
       </div>
@@ -1215,14 +1215,14 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[1px] bg-[#1A1A1A]">
           {pipelineSteps.map((step, i) => (
             <FadeIn key={step.num} delay={i * 100} duration={500}>
-              <div className="bg-[#0A0A0A] p-6 lg:p-8 h-full group hover:bg-[#0F0F0F] transition-colors duration-500 relative overflow-hidden">
+              <div className="bg-[#0A0A0A] p-6 lg:p-8 h-full group hover:bg-[#111] transition-colors duration-500 relative overflow-hidden border border-[#1A1A1A] hover:border-[#2A2A2A]">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-4xl font-mono font-light text-[#333] group-hover:text-[#CDFF00]/15 transition-colors duration-500">{step.num}</span>
-                  <span className="text-[10px] font-mono text-[#CDFF00] tracking-[0.2em]">{step.label}</span>
+                  <span className="text-4xl font-mono font-light text-[#444] group-hover:text-[#CDFF00]/25 transition-colors duration-500">{step.num}</span>
+                  <span className="text-[10px] font-mono text-[#CDFF00] tracking-[0.2em] font-bold">{step.label}</span>
                 </div>
-                <h3 className="text-base font-semibold text-[#EDEDED] mb-3">{step.title}</h3>
-                <p className="text-sm text-[#AAA] leading-relaxed">{step.desc}</p>
-                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-px bg-[#CDFF00]/30 transition-all duration-700" />
+                <h3 className="text-base font-semibold text-white mb-3">{step.title}</h3>
+                <p className="text-sm text-[#CCC] leading-relaxed font-medium">{step.desc}</p>
+                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-px bg-[#CDFF00]/50 transition-all duration-700" />
               </div>
             </FadeIn>
           ))}
@@ -1278,15 +1278,15 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#1A1A1A]">
           {useCases.map((uc, i) => (
             <FadeIn key={uc.title} delay={i * 100} duration={500}>
-              <div className="bg-[#0A0A0A] p-8 lg:p-10 h-full group hover:bg-[#0F0F0F] transition-colors duration-500 relative overflow-hidden">
+              <div className="bg-[#0A0A0A] p-8 lg:p-10 h-full group hover:bg-[#111] transition-colors duration-500 relative overflow-hidden border border-[#1A1A1A] hover:border-[#2A2A2A]">
                 <span className="text-3xl mb-4 block">{uc.icon}</span>
-                <h3 className="text-lg font-semibold text-[#EDEDED] mb-3 group-hover:text-white transition-colors">{uc.title}</h3>
-                <p className="text-sm text-[#AAA] leading-relaxed mb-4">{uc.desc}</p>
+                <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-white transition-colors">{uc.title}</h3>
+                <p className="text-sm text-[#CCC] leading-relaxed mb-4 font-medium">{uc.desc}</p>
                 <div className="flex items-center gap-2">
-                  <span className="w-1 h-1 bg-[#CDFF00]" />
-                  <span className="text-[10px] font-mono text-[#CDFF00] tracking-wider">{uc.stat}</span>
+                  <span className="w-1.5 h-1.5 bg-[#CDFF00] shadow-[0_0_6px_rgba(205,255,0,0.6)]" />
+                  <span className="text-[10px] font-mono text-[#CDFF00] tracking-wider font-bold">{uc.stat}</span>
                 </div>
-                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-px bg-[#CDFF00]/30 transition-all duration-700" />
+                <div className="absolute bottom-0 left-0 w-0 group-hover:w-full h-px bg-[#CDFF00]/50 transition-all duration-700" />
               </div>
             </FadeIn>
           ))}
@@ -1301,7 +1301,7 @@ export default function Home() {
           <div className="h-px flex-1 bg-gradient-to-l from-[#1A1A1A] to-transparent" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#1A1A1A] auto-rows-[220px]"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[#2A2A2A] auto-rows-[220px]"
           style={{ opacity: gridVisible ? 1 : 0, transform: gridVisible ? "translateY(0)" : "translateY(30px)", transition: "opacity 0.8s ease-out, transform 0.8s ease-out" }}>
           <div className="row-span-2"><LiveFeedTile /></div>
           <ChatTile />
