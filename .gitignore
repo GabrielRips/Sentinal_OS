@@ -9,8 +9,12 @@
 *.app.asar.unpacked.js.map.gz.map.gz
 *.app.asar.unpacked.js.map.gz.map.gz.map
 # dependencies
+
 /node_modules
 **/node_modules/
+
+node_modules
+
 /.pnp
 .pnp.*
 .yarn/*
@@ -23,8 +27,12 @@
 /coverage
 
 # next.js
+
 /.next/
 **/.next/
+
+.next/
+
 /out/
 
 # production

@@ -341,6 +341,10 @@ export default function ControlPanel() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
+  const [analyzeQuery, setAnalyzeQuery] = useState("");
+  const [analyzeMode, setAnalyzeMode] = useState<"analyze" | "search">("analyze");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [videoStatus, setVideoStatus] = useState(
     videoConfig.isRealFeedActive ? "Connected to live stream" : "Demo mode: local MP4 playback"
   );
@@ -627,6 +631,152 @@ export default function ControlPanel() {
     }
   }, [downloadBlob, isYouTubeEmbed]);
 
+  const handleAnalyze = useCallback(async () => {
+    if (!analyzeQuery.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setShowAnalyzeModal(false);
+
+    const isSearch = analyzeMode === "search";
+    const id = ++idRef.current;
+    setMessages((prev) => [...prev, { id, role: "user", text: `${isSearch ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}`, displayText: `${isSearch ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}` }]);
+
+    if (isSearch) {
+      // ─── SEARCH MODE: Query Elasticsearch ───
+      setVideoStatus("Searching detection index...");
+      const searchSteps = [
+        { key: "query", label: "Querying object detection database", status: "active" as const },
+        { key: "match", label: "Matching against indexed detections", status: "pending" as const },
+        { key: "compile", label: "Compiling timestamp report", status: "pending" as const },
+      ];
+      setThinkingSteps(searchSteps);
+      setAgentStatus("SENTINEL OBJECT SEARCH");
+      setIsThinking(true);
+
+      const stepTimers = [
+        setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "query" ? { ...s, status: "done" as const } : s.key === "match" ? { ...s, status: "active" as const } : s)), 800),
+        setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "match" ? { ...s, status: "done" as const } : s.key === "compile" ? { ...s, status: "active" as const } : s)), 1500),
+      ];
+
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: analyzeQuery }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Search failed");
+
+        setThinkingSteps(prev => prev.map(s => ({ ...s, status: "done" as const })));
+        await new Promise(r => setTimeout(r, 300));
+
+        let responseText = "";
+        if (!json.found) {
+          const available = (json.available_classes || []).join(", ");
+          responseText = `━━━ SEARCH COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nStatus: NOT FOUND\n\nNo "${analyzeQuery}" detected in the indexed footage.\n\n${available ? `Available objects: ${available}` : "No detections indexed yet."}`;
+        } else {
+          const entries = Object.entries(json.results) as [string, { intervals: { start: number; end: number; start_str: string; end_str: string }[]; total_time: number }][];
+          let body = "";
+          for (const [cls, data] of entries) {
+            const timeRanges = data.intervals.map(i => `${i.start_str} → ${i.end_str}`).join(", ");
+            body += `┌─ ${cls.toUpperCase()} ─────────────────────\n│  Appearances: ${data.intervals.length}\n│  Timestamps:  ${timeRanges}\n│  Total time:  ${data.total_time.toFixed(1)}s on screen\n└────────────────────────────────\n\n`;
+          }
+          const totalIntervals = entries.reduce((sum, [, d]) => sum + d.intervals.length, 0);
+          responseText = `━━━ SEARCH COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nMatches: ${totalIntervals} interval(s) across ${entries.length} class(es)\n\n${body.trim()}`;
+        }
+
+        setIsThinking(false);
+        setAgentStatus("");
+        const aiId = ++idRef.current;
+        setMessages((prev) => [...prev, { id: aiId, role: "ai", text: responseText, displayText: "" }]);
+        let i = 0;
+        const iv = setInterval(() => {
+          i = Math.min(i + 4, responseText.length);
+          setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, displayText: responseText.slice(0, i) } : m)));
+          if (i >= responseText.length) clearInterval(iv);
+        }, 10);
+        setVideoStatus("Search complete — results in chat");
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "Search failed";
+        setIsThinking(false);
+        setAgentStatus("");
+        const aiId = ++idRef.current;
+        setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `[ERROR] Search failed: ${errMsg}`, displayText: `[ERROR] Search failed: ${errMsg}` }]);
+        setVideoStatus("Search failed");
+      } finally {
+        stepTimers.forEach(clearTimeout);
+        setIsAnalyzing(false);
+        setAnalyzeQuery("");
+      }
+      return;
+    }
+
+    // ─── ANALYZE MODE: Twelve Labs deep analysis ───
+    setVideoStatus("Preparing deep analysis...");
+    const analyzeSteps = [
+      { key: "upload", label: "Loading footage into vision pipeline", status: "active" as const },
+      { key: "index", label: "Extracting frame features", status: "pending" as const },
+      { key: "process", label: "Running deep scene analysis", status: "pending" as const },
+      { key: "compile", label: "Compiling detection report", status: "pending" as const },
+    ];
+    setThinkingSteps(analyzeSteps);
+    setAgentStatus("SENTINEL VISION ENGINE");
+    setIsThinking(true);
+
+    const stepTimers = [
+      setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "upload" ? { ...s, status: "done" as const } : s.key === "index" ? { ...s, status: "active" as const } : s)), 3000),
+      setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "index" ? { ...s, status: "done" as const } : s.key === "process" ? { ...s, status: "active" as const } : s)), 8000),
+      setTimeout(() => setVideoStatus("Vision engine processing frames..."), 5000),
+    ];
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: analyzeQuery, mode: "analyze" }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Analysis failed");
+      }
+
+      setThinkingSteps(prev => prev.map(s => ({ ...s, status: "done" as const })));
+      await new Promise(r => setTimeout(r, 400));
+
+      const responseText = `━━━ ANALYSIS COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nEngine: Sentinel Vision v2.1\n\n${json.data || "No additional details returned."}`;
+
+      setIsThinking(false);
+      setAgentStatus("");
+
+      const aiId = ++idRef.current;
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: responseText, displayText: "" }]);
+      let i = 0;
+      const iv = setInterval(() => {
+        i = Math.min(i + 3, responseText.length);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiId ? { ...m, displayText: responseText.slice(0, i) } : m))
+        );
+        if (i >= responseText.length) clearInterval(iv);
+      }, 14);
+
+      setVideoStatus("Analysis complete — results in chat");
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Analysis failed";
+      setThinkingSteps(prev => prev.map(s => s.status !== "done" ? { ...s, status: "error" as const } : s));
+      await new Promise(r => setTimeout(r, 500));
+      setIsThinking(false);
+      setAgentStatus("");
+      const aiId = ++idRef.current;
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `[ERROR] Analysis failed: ${errMsg}`, displayText: `[ERROR] Analysis failed: ${errMsg}` }]);
+      setVideoStatus("Analysis failed");
+    } finally {
+      stepTimers.forEach(clearTimeout);
+      setIsAnalyzing(false);
+      setAnalyzeQuery("");
+    }
+  }, [analyzeQuery, analyzeMode, isAnalyzing]);
+
   const speakText = useCallback((text: string, msgId: number) => {
     if (typeof window === "undefined" || !voiceEnabledRef.current) return;
     window.speechSynthesis.cancel();
@@ -881,20 +1031,20 @@ export default function ControlPanel() {
   return (
     <div className="fixed left-0 right-0 top-14 bottom-0 bg-[#0F141D] flex flex-col overflow-hidden">
       {/* Sub-header */}
-      <div className="border-b border-[#2B3342] bg-[#141A24] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="border-b border-[#364258] bg-[#141A24] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
         <h1 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#F4F7FC]">SkySearch Control</h1>
         <div className="flex items-center gap-3">
           {/* Mobile tab switcher */}
-          <div className="flex lg:hidden border border-[#2B3342] bg-[#111722] p-0.5 gap-0.5 rounded-sm">
+          <div className="flex lg:hidden border border-[#364258] bg-[#111722] p-0.5 gap-0.5 rounded-sm">
             <button
               onClick={() => setMobileTab("control")}
-              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "control" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#A3ADBC] hover:text-[#CFD6E3]"}`}
+              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "control" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#B6C2D5] hover:text-[#E8EDFB]"}`}
             >
               CONTROL
             </button>
             <button
               onClick={() => setMobileTab("status")}
-              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "status" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#A3ADBC] hover:text-[#CFD6E3]"}`}
+              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "status" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#B6C2D5] hover:text-[#E8EDFB]"}`}
             >
               STATUS
             </button>
@@ -902,14 +1052,14 @@ export default function ControlPanel() {
           {isSpeaking && (
             <div className="hidden lg:flex items-center gap-2">
               <WaveformBars active bars={7} color="#B6C2D5" />
-              <span className="text-[12px] font-mono text-[#A3ADBC] tracking-wider">AI SPEAKING</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5] tracking-wider">AI SPEAKING</span>
             </div>
           )}
           <span className="w-1.5 h-1.5 bg-[#22C55E]" />
-          <span className="hidden sm:block text-[13px] text-[#A3ADBC] font-mono tracking-wider">
+          <span className="hidden sm:block text-[13px] text-[#B6C2D5] font-mono tracking-wider">
             DJI MAVIC 3 PRO
           </span>
-          <span className="hidden md:block text-[12px] text-[#8B96A8] font-mono tracking-wider uppercase">
+          <span className="hidden md:block text-[12px] text-[#B6C2D5] font-mono tracking-wider uppercase">
             AGENT {USE_REAL_AGENT_STREAM ? "REAL" : "DEMO"}
           </span>
         </div>
@@ -917,10 +1067,10 @@ export default function ControlPanel() {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0">
         {/* LEFT COLUMN */}
-        <div className={`flex-col border-r border-[#2B3342] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
+        <div className={`flex-col border-r border-[#364258] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
 
           {/* Video Feed */}
-          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#2B3342] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
+          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#364258] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
             <div
               className="absolute left-0 right-0 h-px bg-[#CDFF00]/15"
               style={{ top: `${scanY}%` }}
@@ -965,12 +1115,12 @@ export default function ControlPanel() {
               </video>
             )}
             {/* HUD bar */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#0F141D]/95 border-t border-[#2B3342] px-3 py-2 flex items-center gap-5">
-              <span className="text-[12px] font-mono text-[#A3ADBC]">ALT 45.2m</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">SPD 12km/h</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">GPS {gpsHud}</span>
+            <div className="absolute bottom-0 left-0 right-0 bg-[#0F141D]/95 border-t border-[#364258] px-3 py-2 flex items-center gap-5">
+              <span className="text-[12px] font-mono text-[#B6C2D5]">ALT 45.2m</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5]">SPD 12km/h</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5]">GPS {gpsHud}</span>
               <span className="text-[12px] font-mono text-[#CDFF00] ml-auto">AI: ACTIVE</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">
+              <span className="text-[12px] font-mono text-[#B6C2D5]">
                 FEED {videoConfig.isRealFeedActive ? (isYouTubeEmbed ? "REAL-YT" : "REAL") : "DEMO"}
               </span>
               <span className="text-[12px] font-mono text-[#F87171] flex items-center gap-1">
@@ -984,17 +1134,17 @@ export default function ControlPanel() {
           <div className="px-2 lg:px-3 pb-1 lg:pb-2 flex gap-1.5 shrink-0">
             <button
               onClick={handleRecordToggle}
-              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#F87171] hover:bg-[#1A2231] transition-colors tracking-wider"
+              className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#F87171] hover:bg-[#1A2231] transition-colors tracking-wider"
             >
               {isRecording ? "STOP" : "REC"}
             </button>
             <button
               onClick={handleCapture}
-              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CFD6E3] hover:bg-[#1A2231] transition-colors tracking-wider"
+              className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#E8EDFB] hover:bg-[#1A2231] transition-colors tracking-wider"
             >
               CAPTURE
             </button>
-            <button className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
+            <button className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
               AI: ON
             </button>
           </div>
@@ -1004,16 +1154,16 @@ export default function ControlPanel() {
           </div>
 
           {/* LLM Chat */}
-          <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#2B3342] bg-[#111722] overflow-hidden min-h-0">
+          <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#364258] bg-[#111722] overflow-hidden min-h-0">
 
             {/* Chat header */}
-            <div className="px-4 py-3 border-b border-[#2B3342] bg-[#151D2A] flex items-center justify-between shrink-0">
+            <div className="px-4 py-3 border-b border-[#364258] bg-[#151D2A] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">Command Center</h3>
                 {isSpeaking && (
                   <div className="flex items-center gap-1.5">
                     <WaveformBars active bars={5} color="#B6C2D5" />
-                    <span className="text-[11px] font-mono text-[#A3ADBC] tracking-wider">SPEAKING</span>
+                    <span className="text-[11px] font-mono text-[#B6C2D5] tracking-wider">SPEAKING</span>
                   </div>
                 )}
               </div>
@@ -1024,7 +1174,7 @@ export default function ControlPanel() {
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-mono tracking-wider transition-all ${
                   voiceEnabled
                     ? "bg-[#2D384A] text-[#F4F7FC]"
-                    : "text-[#A3ADBC] hover:text-[#CFD6E3]"
+                    : "text-[#B6C2D5] hover:text-[#E8EDFB]"
                 }`}
               >
                 VOICE {voiceEnabled ? "ON" : "OFF"}
@@ -1033,62 +1183,94 @@ export default function ControlPanel() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`border border-[#2B3342] bg-[#151D2A] p-3 max-w-[85%] ${
-                    msg.role === "ai"
-                      ? "border-l-2 border-l-[#3F4C62] mr-auto"
-                      : "border-l-2 border-l-[#7B879A] ml-auto"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[12px] font-mono text-[#A3ADBC] tracking-wider">
-                      {msg.role === "ai" ? "SKYSEARCH AI" : "OPERATOR"}
-                    </p>
-                    {msg.role === "ai" && speakingId === msg.id && (
-                      <WaveformBars active bars={4} color="#B6C2D5" />
-                    )}
+              {messages.map((msg) => {
+                const isAnalysisResult = msg.role === "ai" && (msg.text.includes("━━━ SCAN") || msg.text.includes("━━━ ANALYSIS"));
+                const isAnalysisQuery = msg.role === "user" && (msg.text.startsWith("SEARCH:") || msg.text.startsWith("ANALYZE:"));
+                return (
+                  <div
+                    key={msg.id}
+                    className={`border p-3 max-w-[88%] ${
+                      isAnalysisResult
+                        ? "border-[#3B82F6]/20 bg-gradient-to-b from-[#111B2E] to-[#151D2A] border-l-2 border-l-[#3B82F6] mr-auto shadow-[0_0_20px_rgba(59,130,246,0.05)]"
+                        : isAnalysisQuery
+                          ? "border-[#3B82F6]/30 bg-[#111B2E] border-l-2 border-l-[#3B82F6]/60 ml-auto"
+                          : msg.role === "ai"
+                            ? "border-[#364258] bg-[#151D2A] border-l-2 border-l-[#3F4C62] mr-auto"
+                            : "border-[#364258] bg-[#151D2A] border-l-2 border-l-[#7B879A] ml-auto"
+                    }`}
+                    style={isAnalysisResult ? { animation: "detection-appear 0.4s ease-out" } : undefined}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`text-[12px] font-mono tracking-wider ${isAnalysisResult ? "text-[#3B82F6]" : isAnalysisQuery ? "text-[#3B82F6]/80" : "text-[#B6C2D5]"}`}>
+                        {isAnalysisResult ? "SENTINEL AI — ANALYSIS" : isAnalysisQuery ? "OPERATOR — QUERY" : msg.role === "ai" ? "SKYSEARCH AI" : "OPERATOR"}
+                      </p>
+                      {msg.role === "ai" && speakingId === msg.id && (
+                        <WaveformBars active bars={4} color="#B6C2D5" />
+                      )}
+                    </div>
+                    <pre className={`text-[13px] leading-relaxed whitespace-pre-wrap font-mono ${isAnalysisResult ? "text-[#D7E0ED]" : "text-[#E8EDFB]"}`}>
+                      {msg.displayText}
+                      {msg.role === "ai" && msg.displayText.length < msg.text.length && (
+                        <span className="inline-block w-0.5 h-3 bg-[#3B82F6] ml-0.5 align-middle animate-pulse" />
+                      )}
+                    </pre>
                   </div>
-                  <p className="text-sm text-[#CFD6E3] leading-relaxed">
-                    {msg.displayText}
-                    {msg.role === "ai" && msg.displayText.length < msg.text.length && (
-                      <span className="inline-block w-0.5 h-3 bg-[#A3ADBC] ml-0.5 align-middle animate-pulse" />
-                    )}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
 
               {isThinking && (
-                <div className="border border-[#2B3342] bg-[#151D2A] border-l-2 border-l-[#4D5C74] p-3 max-w-[88%] mr-auto">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="text-[12px] font-mono text-[#A3ADBC] tracking-wider">AGENT THINKING</p>
-                    <WaveformBars active bars={4} color="#B6C2D5" />
-                    <span className="text-[12px] text-[#CFD6E3]">{agentStatus || "Processing"}</span>
+                <div className="border border-[#364258] bg-gradient-to-b from-[#131A26] to-[#151D2A] border-l-2 border-l-[#3B82F6] p-4 max-w-[90%] mr-auto relative overflow-hidden" style={{ animation: "detection-appear 0.3s ease-out" }}>
+                  {/* Scan line effect */}
+                  <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#3B82F6]/20 to-transparent" style={{ animation: "analyze-scan 2s linear infinite" }} />
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex gap-0.5">
+                      <span className="w-1 h-3 bg-[#3B82F6]" style={{ animation: "waveBar 0.35s ease-in-out infinite alternate" }} />
+                      <span className="w-1 h-3 bg-[#3B82F6]" style={{ animation: "waveBar 0.35s ease-in-out 0.08s infinite alternate" }} />
+                      <span className="w-1 h-3 bg-[#3B82F6]" style={{ animation: "waveBar 0.35s ease-in-out 0.16s infinite alternate" }} />
+                      <span className="w-1 h-3 bg-[#3B82F6]/60" style={{ animation: "waveBar 0.35s ease-in-out 0.24s infinite alternate" }} />
+                    </div>
+                    <p className="text-[12px] font-mono text-[#3B82F6] tracking-[0.15em] font-semibold" style={{ textShadow: "0 0 10px rgba(59,130,246,0.3)" }}>
+                      {agentStatus || "PROCESSING"}
+                    </p>
                   </div>
-                  <div className="space-y-1.5">
-                    {thinkingSteps.map((step) => (
-                      <div key={step.key} className="flex items-center gap-2 text-[13px]">
+                  <div className="space-y-2 pl-1">
+                    {thinkingSteps.map((step, idx) => (
+                      <div
+                        key={step.key}
+                        className="flex items-center gap-2.5 text-[13px]"
+                        style={{ animation: `result-slide 0.3s ease-out ${idx * 0.1}s both` }}
+                      >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-1.5 h-1.5 ${
                             step.status === "done"
-                              ? "bg-[#22C55E]"
+                              ? "bg-[#22C55E] shadow-[0_0_6px_rgba(34,197,94,0.5)]"
                               : step.status === "error"
-                                ? "bg-[#F87171]"
-                                : "bg-[#B6C2D5] animate-pulse"
+                                ? "bg-[#F87171] shadow-[0_0_6px_rgba(248,113,113,0.5)]"
+                                : step.status === "active"
+                                  ? "bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                                  : "bg-[#364258]"
                           }`}
+                          style={step.status === "active" ? { animation: "processing-pulse 0.6s ease-in-out infinite" } : undefined}
                         />
+                        <span className="text-[#8B96A8] font-mono text-[11px]">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
                         <span
-                          className={`font-mono ${
+                          className={`font-mono text-[12px] ${
                             step.status === "done"
-                              ? "text-[#D7E0ED]"
+                              ? "text-[#B6C2D5]"
                               : step.status === "error"
                                 ? "text-[#FCA5A5]"
-                                : "text-[#AFC0D7]"
+                                : step.status === "active"
+                                  ? "text-[#E8EDFB]"
+                                  : "text-[#8B96A8]"
                           }`}
+                          style={step.status === "active" ? { textShadow: "0 0 8px rgba(59,130,246,0.2)" } : undefined}
                         >
                           {step.label}
                         </span>
+                        {step.status === "done" && <span className="text-[10px] font-mono text-[#22C55E]/60 ml-auto">DONE</span>}
+                        {step.status === "active" && <span className="text-[10px] font-mono text-[#3B82F6]/80 ml-auto" style={{ animation: "processing-pulse 1s ease-in-out infinite" }}>RUNNING</span>}
                       </div>
                     ))}
                   </div>
@@ -1099,18 +1281,18 @@ export default function ControlPanel() {
             </div>
 
             {/* Input area */}
-            <div className="p-3 border-t border-[#2B3342] bg-[#141B28] shrink-0">
+            <div className="p-3 border-t border-[#364258] bg-[#141B28] shrink-0">
 
               {(isListening || transcript) && (
-                <div className="mb-2 px-3 py-2 border border-[#2B3342] bg-[#172031] flex items-center gap-2.5">
+                <div className="mb-2 px-3 py-2 border border-[#364258] bg-[#172031] flex items-center gap-2.5">
                   <WaveformBars active={isListening} bars={6} color="#B6C2D5" />
-                  <span className="text-[13px] text-[#CFD6E3] font-mono flex-1 truncate">
+                  <span className="text-[13px] text-[#E8EDFB] font-mono flex-1 truncate">
                     {isListening && !transcript ? "Listening…" : transcript || "Processing…"}
                   </span>
                   {isListening && (
                     <button
                       onClick={stopListening}
-                      className="text-[11px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] transition-colors tracking-wider"
+                      className="text-[11px] font-mono text-[#B6C2D5] hover:text-[#F4F7FC] transition-colors tracking-wider"
                     >
                       STOP
                     </button>
@@ -1126,7 +1308,7 @@ export default function ControlPanel() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                   placeholder="Type a command…"
-                  className="flex-1 bg-[#0F141D] border border-[#2B3342] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#8B96A8] focus:outline-none focus:border-[#4D5C74] disabled:opacity-60"
+                  className="flex-1 bg-[#0F141D] border border-[#364258] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#B6C2D5] focus:outline-none focus:border-[#4D5C74] disabled:opacity-60"
                 />
 
                 <button
@@ -1166,7 +1348,7 @@ export default function ControlPanel() {
                     key={cmd}
                     onClick={() => sendMessage(cmd)}
                     disabled={isAgentRunning}
-                    className="border border-[#2B3342] bg-[#141B28] px-3 py-2 text-[13px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] hover:border-[#4D5C74] transition-colors whitespace-nowrap shrink-0 tracking-wider disabled:opacity-50"
+                    className="border border-[#364258] bg-[#141B28] px-3 py-2 text-[13px] font-mono text-[#B6C2D5] hover:text-[#F4F7FC] hover:border-[#4D5C74] transition-colors whitespace-nowrap shrink-0 tracking-wider disabled:opacity-50"
                   >
                     {cmd}
                   </button>
@@ -1179,18 +1361,40 @@ export default function ControlPanel() {
         {/* RIGHT COLUMN */}
         <div className={`flex-col overflow-y-auto ${mobileTab === "status" ? "flex" : "hidden"} lg:flex`}>
 
+          {/* Analyze Button */}
+          <div className="p-4 pb-2">
+            <button
+              onClick={() => setShowAnalyzeModal(true)}
+              disabled={isAnalyzing}
+              className={`w-full py-3.5 text-[13px] font-semibold font-mono tracking-[0.18em] uppercase transition-all border relative overflow-hidden ${
+                isAnalyzing
+                  ? "analyze-btn-active bg-[#141A24] text-[#3B82F6] border-[#3B82F6]/50"
+                  : "analyze-btn-idle bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:from-[#2563EB] hover:to-[#1D4ED8] text-white border-[#3B82F6]/30"
+              }`}
+            >
+              {isAnalyzing ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full" style={{ animation: "processing-pulse 0.6s ease-in-out infinite" }} />
+                  <span className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full" style={{ animation: "processing-pulse 0.6s ease-in-out 0.2s infinite" }} />
+                  <span className="w-1.5 h-1.5 bg-[#3B82F6] rounded-full" style={{ animation: "processing-pulse 0.6s ease-in-out 0.4s infinite" }} />
+                  <span className="ml-1">PROCESSING</span>
+                </span>
+              ) : "ANALYZE FOOTAGE"}
+            </button>
+          </div>
+
           {/* Telemetry */}
           <div className="p-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               Telemetry
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-4">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-4">
               <div>
                 <div className="flex justify-between text-[13px] mb-1.5">
-                  <span className="text-[#A3ADBC] font-mono">BATTERY</span>
+                  <span className="text-[#B6C2D5] font-mono">BATTERY</span>
                   <span className="font-mono text-[#EDEDED]">78%</span>
                 </div>
-                <div className="w-full h-1.5 bg-[#2B3342]">
+                <div className="w-full h-1.5 bg-[#364258]">
                   <div className="h-full w-[78%] bg-[#22C55E]" />
                 </div>
               </div>
@@ -1203,7 +1407,7 @@ export default function ControlPanel() {
                 { label: "FLIGHT TIME", value: "00:14:32" },
               ].map((item) => (
                 <div key={item.label} className="flex justify-between text-[13px]">
-                  <span className="text-[#A3ADBC] font-mono">{item.label}</span>
+                  <span className="text-[#B6C2D5] font-mono">{item.label}</span>
                   <span className="font-mono text-[#EDEDED]">{item.value}</span>
                 </div>
               ))}
@@ -1212,10 +1416,10 @@ export default function ControlPanel() {
 
           {/* GPS Map */}
           <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               GPS Tracker
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] overflow-hidden">
+            <div className="border border-[#364258] bg-[#131A26] overflow-hidden">
               <div className="h-[220px] bg-[#0F141D]">
                 <LiveGpsMap
                   currentPosition={currentPosition}
@@ -1223,16 +1427,16 @@ export default function ControlPanel() {
                   flightPath={flightPath}
                 />
               </div>
-              <div className="px-3 py-2 border-t border-[#2B3342] bg-[#151D2A] flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#A3ADBC] tracking-wider">{locationStatus}</span>
-                <span className="text-[11px] font-mono text-[#CFD6E3]">
+              <div className="px-3 py-2 border-t border-[#364258] bg-[#151D2A] flex items-center justify-between">
+                <span className="text-[11px] font-mono text-[#B6C2D5] tracking-wider">{locationStatus}</span>
+                <span className="text-[11px] font-mono text-[#E8EDFB]">
                   {currentPosition
                     ? `${formatCoordinate(currentPosition.lat, "N", "S")} ${formatCoordinate(currentPosition.lng, "E", "W")}`
                     : "Waiting for coordinates"}
                 </span>
               </div>
               {locationError && (
-                <div className="px-3 py-2 border-t border-[#2B3342] bg-[#131A26] text-[12px] font-mono text-[#F59E0B]">
+                <div className="px-3 py-2 border-t border-[#364258] bg-[#131A26] text-[12px] font-mono text-[#F59E0B]">
                   {locationError}
                 </div>
               )}
@@ -1241,10 +1445,10 @@ export default function ControlPanel() {
 
           {/* AI Status */}
           <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               AI Status
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-3">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
               {[
                 { label: "MODEL",            value: "Active",   accent: "#22C55E" },
                 { label: "FACES DB",         value: "12 loaded", accent: "#22C55E" },
@@ -1254,7 +1458,7 @@ export default function ControlPanel() {
                 <div key={item.label} className="flex items-center justify-between text-[13px]">
                   <div className="flex items-center gap-2">
                     <span className="w-1 h-1" style={{ backgroundColor: item.accent }} />
-                    <span className="text-[#A3ADBC] font-mono">{item.label}</span>
+                    <span className="text-[#B6C2D5] font-mono">{item.label}</span>
                   </div>
                   <span className="font-mono text-[#EDEDED]">{item.value}</span>
                 </div>
@@ -1264,21 +1468,154 @@ export default function ControlPanel() {
 
           {/* Notifications */}
           <div className="px-4 pb-4 flex-1">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               Events
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-3">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
               {notifications.map((n) => (
                 <div key={n.id} className="flex gap-3 text-[13px] leading-relaxed">
-                  <span className="font-mono text-[#8B96A8] shrink-0">{n.time}</span>
+                  <span className="font-mono text-[#B6C2D5] shrink-0">{n.time}</span>
                   <span className="w-1 h-1 mt-1.5 shrink-0" style={{ backgroundColor: n.accent }} />
-                  <span className="text-[#CFD6E3]">{n.text}</span>
+                  <span className="text-[#E8EDFB]">{n.text}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Analyze Modal */}
+      {showAnalyzeModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-md" onClick={() => setShowAnalyzeModal(false)}>
+          <div
+            className="w-[480px] border border-[#3B82F6]/20 bg-[#0D1117] shadow-[0_0_80px_rgba(59,130,246,0.12)] relative analyze-modal-scan"
+            onClick={e => e.stopPropagation()}
+            style={{ animation: "detection-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          >
+            {/* Animated corner brackets */}
+            <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-[#3B82F6]/60" style={{ animation: "border-trace 0.6s ease-out both" }} />
+            <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-[#3B82F6]/60" style={{ animation: "border-trace 0.6s ease-out 0.1s both" }} />
+            <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-[#3B82F6]/60" style={{ animation: "border-trace 0.6s ease-out 0.2s both" }} />
+            <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-[#3B82F6]/60" style={{ animation: "border-trace 0.6s ease-out 0.3s both" }} />
+
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#1E2736] bg-gradient-to-r from-[#3B82F6]/8 via-transparent to-[#3B82F6]/4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-[#3B82F6]" style={{ animation: "processing-pulse 1.2s ease-in-out infinite" }} />
+                  <span className="w-1 h-1 bg-[#3B82F6]/60" style={{ animation: "processing-pulse 1.2s ease-in-out 0.3s infinite" }} />
+                  <span className="w-0.5 h-0.5 bg-[#3B82F6]/30" style={{ animation: "processing-pulse 1.2s ease-in-out 0.6s infinite" }} />
+                </div>
+                <h3 className="text-[13px] font-semibold tracking-[0.2em] uppercase text-[#E8EDFB]" style={{ textShadow: "0 0 20px rgba(59,130,246,0.2)" }}>
+                  AI Video Analysis
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-mono text-[#3B82F6]/60 tracking-wider">SENTINEL AI</span>
+                <button
+                  onClick={() => setShowAnalyzeModal(false)}
+                  className="text-[#8B96A8] hover:text-[#F4F7FC] w-6 h-6 flex items-center justify-center hover:bg-[#1E2736] transition-colors text-sm"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* Mode toggle */}
+              <div className="flex gap-0 border border-[#1E2736] overflow-hidden">
+                <button
+                  onClick={() => { setAnalyzeMode("analyze"); setAnalyzeQuery(""); }}
+                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all ${
+                    analyzeMode === "analyze"
+                      ? "bg-[#3B82F6] text-white shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]"
+                      : "bg-[#0A0E14] text-[#8B96A8] hover:text-[#B6C2D5] hover:bg-[#111722]"
+                  }`}
+                >
+                  ANALYZE
+                </button>
+                <div className="w-px bg-[#1E2736]" />
+                <button
+                  onClick={() => { setAnalyzeMode("search"); setAnalyzeQuery(""); }}
+                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all ${
+                    analyzeMode === "search"
+                      ? "bg-[#CDFF00] text-[#0A0A0A] font-semibold shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]"
+                      : "bg-[#0A0E14] text-[#8B96A8] hover:text-[#B6C2D5] hover:bg-[#111722]"
+                  }`}
+                >
+                  OBJECT SEARCH
+                </button>
+              </div>
+
+              {/* Input */}
+              <div>
+                <label className="block text-[10px] font-mono text-[#8B96A8] tracking-[0.2em] mb-2.5 uppercase">
+                  {analyzeMode === "search" ? "Search for an object" : "Describe what to analyze"}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={analyzeQuery}
+                    onChange={(e) => setAnalyzeQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                    placeholder={analyzeMode === "search" ? "e.g. car, person, dog..." : "e.g. Describe all activity in the footage..."}
+                    autoFocus
+                    className="w-full bg-[#080B10] border border-[#1E2736] px-4 py-3.5 text-sm text-[#F4F7FC] placeholder:text-[#6B7A8D] focus:outline-none focus:border-[#3B82F6]/60 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all font-mono"
+                  />
+                  {analyzeQuery && (
+                    <button onClick={() => setAnalyzeQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B96A8] hover:text-[#B6C2D5] text-xs">
+                      &times;
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick suggestions */}
+              <div>
+                <p className="text-[10px] font-mono text-[#6B7A8D] tracking-[0.2em] mb-2.5 uppercase">Quick select</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(analyzeMode === "search"
+                    ? ["person", "car", "dog", "fire hydrant", "airplane", "sports ball"]
+                    : ["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"]
+                  ).map((s, idx) => (
+                    <button
+                      key={s}
+                      onClick={() => setAnalyzeQuery(s)}
+                      style={{ animation: `result-slide 0.3s ease-out ${idx * 0.05}s both` }}
+                      className={`px-3 py-1.5 text-[11px] font-mono border transition-all ${
+                        analyzeQuery === s
+                          ? analyzeMode === "search"
+                            ? "border-[#CDFF00]/40 bg-[#CDFF00]/8 text-[#CDFF00]"
+                            : "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
+                          : "border-[#1E2736] text-[#8B96A8] hover:text-[#B6C2D5] hover:border-[#364258] hover:bg-[#111722]"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#1E2736] bg-[#080B10]/80 flex items-center justify-between">
+              <span className="text-[9px] font-mono text-[#6B7A8D] tracking-wider">
+                {analyzeMode === "search" ? "YOLO + ELASTICSEARCH" : "SENTINEL VISION ENGINE"}
+              </span>
+              <button
+                onClick={handleAnalyze}
+                disabled={!analyzeQuery.trim()}
+                className={`px-8 py-2.5 text-[12px] font-mono font-semibold tracking-[0.18em] transition-all disabled:opacity-20 disabled:cursor-not-allowed relative overflow-hidden ${
+                  analyzeMode === "search"
+                    ? "bg-[#CDFF00] text-[#0A0A0A] hover:bg-[#d8ff33] hover:shadow-[0_0_20px_rgba(205,255,0,0.2)]"
+                    : "bg-[#3B82F6] text-white hover:bg-[#2563EB] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                }`}
+              >
+                {analyzeMode === "search" ? "SEARCH" : "ANALYZE"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

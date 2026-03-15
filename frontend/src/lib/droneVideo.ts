@@ -1,7 +1,7 @@
 export type DroneFeedMode = "demo" | "real";
 export type DroneFeedSourceType = "video" | "youtube";
 
-const DEFAULT_DEMO_VIDEO = "/forest-fire-web.mp4";
+const DEFAULT_DEMO_VIDEO = "/drone-demo.mp4";
 
 function parseMode(value: string | undefined): DroneFeedMode {
   return value?.toLowerCase() === "real" ? "real" : "demo";
