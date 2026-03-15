@@ -341,6 +341,10 @@ export default function ControlPanel() {
   const [streamError, setStreamError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
+  const [analyzeQuery, setAnalyzeQuery] = useState("");
+  const [analyzeMode, setAnalyzeMode] = useState<"analyze" | "search">("analyze");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [videoStatus, setVideoStatus] = useState(
     videoConfig.isRealFeedActive ? "Connected to live stream" : "Demo mode: local MP4 playback"
   );
@@ -626,6 +630,65 @@ export default function ControlPanel() {
       setVideoStatus("Capture blocked by stream security settings");
     }
   }, [downloadBlob, isYouTubeEmbed]);
+
+  const handleAnalyze = useCallback(async () => {
+    if (!analyzeQuery.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setShowAnalyzeModal(false);
+    setVideoStatus("Analyzing footage...");
+
+    const id = ++idRef.current;
+    setMessages((prev) => [...prev, { id, role: "user", text: `[ANALYZE] ${analyzeQuery}`, displayText: `[ANALYZE] ${analyzeQuery}` }]);
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: analyzeQuery, mode: analyzeMode }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Analysis failed");
+      }
+
+      let responseText = "";
+      if (json.type === "search" && Array.isArray(json.results)) {
+        if (json.results.length === 0) {
+          responseText = `Analysis complete. No matches found for "${analyzeQuery}" in the footage.`;
+        } else {
+          const matches = json.results.map((r: { start: number; end: number; score: number; confidence: string }, i: number) =>
+            `${i + 1}. ${r.start.toFixed(1)}s - ${r.end.toFixed(1)}s (${(r.score * 100).toFixed(0)}% confidence: ${r.confidence})`
+          ).join("\n");
+          responseText = `Found ${json.results.length} match(es) for "${analyzeQuery}":\n${matches}`;
+        }
+      } else {
+        responseText = json.data || "Analysis complete. No additional details returned.";
+      }
+
+      const aiId = ++idRef.current;
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: responseText, displayText: "" }]);
+      let i = 0;
+      const iv = setInterval(() => {
+        i = Math.min(i + 2, responseText.length);
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiId ? { ...m, displayText: responseText.slice(0, i) } : m))
+        );
+        if (i >= responseText.length) clearInterval(iv);
+      }, 18);
+
+      setVideoStatus("Analysis complete");
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Analysis failed";
+      const aiId = ++idRef.current;
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `Analysis error: ${errMsg}`, displayText: `Analysis error: ${errMsg}` }]);
+      setVideoStatus("Analysis failed");
+    } finally {
+      setIsAnalyzing(false);
+      setAnalyzeQuery("");
+    }
+  }, [analyzeQuery, analyzeMode, isAnalyzing]);
 
   const speakText = useCallback((text: string, msgId: number) => {
     if (typeof window === "undefined" || !voiceEnabledRef.current) return;
@@ -997,6 +1060,13 @@ export default function ControlPanel() {
             <button className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
               AI: ON
             </button>
+            <button
+              onClick={() => setShowAnalyzeModal(true)}
+              disabled={isAnalyzing}
+              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#3B82F6] hover:bg-[#1A2231] transition-colors tracking-wider disabled:opacity-50"
+            >
+              {isAnalyzing ? "ANALYZING..." : "ANALYZE"}
+            </button>
           </div>
           <div className="px-2 lg:px-3 pb-2">
             <p className="text-[12px] font-mono text-[#8EA0BA] tracking-wide">{videoStatus}</p>
@@ -1279,6 +1349,87 @@ export default function ControlPanel() {
           </div>
         </div>
       </div>
+
+      {/* Analyze Modal */}
+      {showAnalyzeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-[420px] border border-[#2B3342] bg-[#141A24] shadow-2xl">
+            <div className="px-5 py-4 border-b border-[#2B3342] flex items-center justify-between">
+              <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">
+                Video Analysis
+              </h3>
+              <button
+                onClick={() => setShowAnalyzeModal(false)}
+                className="text-[#A3ADBC] hover:text-[#F4F7FC] text-lg leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-[12px] font-mono text-[#A3ADBC] tracking-wider mb-2">
+                  WHAT DO YOU WANT TO FIND / ANALYZE?
+                </label>
+                <input
+                  type="text"
+                  value={analyzeQuery}
+                  onChange={(e) => setAnalyzeQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  placeholder="e.g. Find people, detect fire, describe the scene..."
+                  autoFocus
+                  className="w-full bg-[#0F141D] border border-[#2B3342] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#8B96A8] focus:outline-none focus:border-[#4D5C74]"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setAnalyzeMode("analyze")}
+                  className={`flex-1 py-2 text-[12px] font-mono tracking-wider border transition-colors ${
+                    analyzeMode === "analyze"
+                      ? "border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]"
+                      : "border-[#2B3342] text-[#A3ADBC] hover:text-[#CFD6E3]"
+                  }`}
+                >
+                  ANALYZE
+                </button>
+                <button
+                  onClick={() => setAnalyzeMode("search")}
+                  className={`flex-1 py-2 text-[12px] font-mono tracking-wider border transition-colors ${
+                    analyzeMode === "search"
+                      ? "border-[#CDFF00] bg-[#CDFF00]/10 text-[#CDFF00]"
+                      : "border-[#2B3342] text-[#A3ADBC] hover:text-[#CFD6E3]"
+                  }`}
+                >
+                  SEARCH
+                </button>
+              </div>
+
+              <p className="text-[11px] font-mono text-[#8B96A8]">
+                {analyzeMode === "analyze"
+                  ? "Analyze will describe and interpret the footage using AI."
+                  : "Search will find specific moments matching your query."}
+              </p>
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#2B3342] flex justify-end gap-2">
+              <button
+                onClick={() => setShowAnalyzeModal(false)}
+                className="px-4 py-2 text-[13px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] tracking-wider"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleAnalyze}
+                disabled={!analyzeQuery.trim()}
+                className="px-5 py-2 text-[13px] font-mono bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors tracking-wider disabled:opacity-40"
+              >
+                RUN ANALYSIS
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
