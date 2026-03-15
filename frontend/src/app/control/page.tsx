@@ -331,7 +331,7 @@ export default function ControlPanel() {
 
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingId, setSpeakingId] = useState<number | null>(null);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [agentStatus, setAgentStatus] = useState("");
