@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import path from "path";
 
 const API_KEY = process.env.TWELVE_LABS_API_KEY!;
 const BASE = "https://api.twelvelabs.io/v1.3";
@@ -34,17 +36,19 @@ async function ensureIndexedVideo(): Promise<IndexEntry> {
 
   const { _id: indexId } = await idxRes.json();
 
-  // 2. Upload the demo drone video via public URL
-  // We use the Vercel-deployed video so Twelve Labs can fetch it
+  // 2. Upload the video file directly from disk
+  const videoPath = path.join(process.cwd(), "public", "drone-demo.mp4");
+  const videoBuffer = await readFile(videoPath);
+  const videoBlob = new Blob([videoBuffer], { type: "video/mp4" });
+
+  const fd = new FormData();
+  fd.append("index_id", indexId);
+  fd.append("video_file", videoBlob, "drone-demo.mp4");
+
   const taskRes = await fetch(`${BASE}/tasks`, {
     method: "POST",
-    headers: { "x-api-key": API_KEY, "Content-Type": "multipart/form-data" },
-    body: (() => {
-      const fd = new FormData();
-      fd.append("index_id", indexId);
-      fd.append("video_url", "https://sentinal-os.vercel.app/forest-fire-web.mp4");
-      return fd;
-    })(),
+    headers: { "x-api-key": API_KEY },
+    body: fd,
   });
 
   if (!taskRes.ok) {
@@ -85,17 +89,16 @@ export async function POST(req: NextRequest) {
     const { indexId, videoId } = await ensureIndexedVideo();
 
     if (mode === "search") {
-      // Search mode: find specific moments in the video
+      const searchFd = new FormData();
+      searchFd.append("index_id", indexId);
+      searchFd.append("query_text", query);
+      searchFd.append("search_options", "visual");
+      searchFd.append("threshold", "low");
+      searchFd.append("page_limit", "5");
       const searchRes = await fetch(`${BASE}/search`, {
         method: "POST",
-        headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          index_id: indexId,
-          query_text: query,
-          search_options: ["visual"],
-          threshold: "low",
-          page_limit: 5,
-        }),
+        headers: { "x-api-key": API_KEY },
+        body: searchFd,
       });
 
       if (!searchRes.ok) {
@@ -106,7 +109,6 @@ export async function POST(req: NextRequest) {
       const results = await searchRes.json();
       return NextResponse.json({ type: "search", results: results.data || [] });
     } else {
-      // Analyze mode: open-ended analysis with a prompt
       const analyzeRes = await fetch(`${BASE}/analyze`, {
         method: "POST",
         headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
