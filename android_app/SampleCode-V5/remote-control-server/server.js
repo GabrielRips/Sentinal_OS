@@ -2,6 +2,16 @@ const http = require("http");
 const crypto = require("crypto");
 const express = require("express");
 const WebSocket = require("ws");
+const {
+  createContext,
+  runAgentSession,
+  DEFAULT_MODEL,
+  DEFAULT_BASE_URL,
+  DEFAULT_DEVICE_ID,
+  DEFAULT_ITERATIONS,
+  EXECUTE_ENABLED,
+  SIMULATOR_ONLY
+} = require("./agent");
 
 const PORT = Number(process.env.PORT || 8080);
 const DEVICE_TOKEN = process.env.DEVICE_TOKEN || "";
@@ -118,6 +128,10 @@ function signCommand(command) {
   const payloadRaw = JSON.stringify(command.payload || {});
   const data = `${command.commandId}|${command.name}|${command.ts}|${command.nonce}|${payloadRaw}`;
   return crypto.createHmac("sha256", SHARED_SECRET).update(data, "utf8").digest("hex");
+}
+
+function writeNdjson(res, payload) {
+  res.write(`${JSON.stringify(payload)}\n`);
 }
 
 function buildCommand({ name, payload = {}, ttlMs = 5000, commandId, nonce }) {
@@ -250,6 +264,55 @@ app.post("/devices/:deviceId/sticks", verifyApiAuth, (req, res) => {
   res.json({ ok: true, command });
 });
 
+app.post("/agent/stream", verifyApiAuth, async (req, res) => {
+  const body = req.body || {};
+  const context = createContext({
+    goal: typeof body.goal === "string" && body.goal.trim() ? body.goal.trim() : process.env.AGENT_GOAL || "Assess situation and suggest safe next action.",
+    deviceId: typeof body.deviceId === "string" && body.deviceId.trim() ? body.deviceId.trim() : process.env.AGENT_DEVICE_ID || DEFAULT_DEVICE_ID,
+    model: typeof body.model === "string" && body.model.trim() ? body.model.trim() : process.env.AGENT_MODEL || DEFAULT_MODEL,
+    baseUrl: process.env.AGENT_SERVER_BASE_URL || `http://localhost:${PORT}` || DEFAULT_BASE_URL,
+    maxIterations: Number(body.maxIterations || process.env.AGENT_MAX_ITERATIONS || DEFAULT_ITERATIONS)
+  });
+
+  logInfo("agent stream request", {
+    goal: context.goal,
+    deviceId: context.deviceId,
+    model: context.model,
+    maxIterations: context.maxIterations
+  });
+
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+
+  if (typeof res.flushHeaders === "function") {
+    res.flushHeaders();
+  }
+
+  const onEvent = (event) => {
+    writeNdjson(res, event);
+  };
+
+  try {
+    const result = await runAgentSession(context, { onEvent });
+    writeNdjson(res, {
+      type: "result",
+      ts: Date.now(),
+      finalMessage: result.finalMessage,
+      transcriptLength: Array.isArray(result.transcript) ? result.transcript.length : 0
+    });
+  } catch (error) {
+    logError("agent stream failed", { error: error?.message || String(error) });
+    writeNdjson(res, {
+      type: "error",
+      ts: Date.now(),
+      error: error?.message || String(error)
+    });
+  } finally {
+    res.end();
+  }
+});
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
 
@@ -362,6 +425,8 @@ server.listen(PORT, () => {
     deviceTokenEnabled: !!DEVICE_TOKEN,
     apiKeyEnabled: !!API_KEY,
     sharedSecretEnabled: !!SHARED_SECRET,
-    logRawMessages: LOG_RAW_MESSAGES
+    logRawMessages: LOG_RAW_MESSAGES,
+    agentExecuteEnabled: EXECUTE_ENABLED,
+    agentSimulatorOnly: SIMULATOR_ONLY
   });
 });
