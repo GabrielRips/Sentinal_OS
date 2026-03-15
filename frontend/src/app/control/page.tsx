@@ -1060,13 +1060,6 @@ export default function ControlPanel() {
             <button className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
               AI: ON
             </button>
-            <button
-              onClick={() => setShowAnalyzeModal(true)}
-              disabled={isAnalyzing}
-              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#3B82F6] hover:bg-[#1A2231] transition-colors tracking-wider disabled:opacity-50"
-            >
-              {isAnalyzing ? "ANALYZING..." : "ANALYZE"}
-            </button>
           </div>
           <div className="px-2 lg:px-3 pb-2">
             <p className="text-[12px] font-mono text-[#8EA0BA] tracking-wide">{videoStatus}</p>
@@ -1248,6 +1241,21 @@ export default function ControlPanel() {
 
         {/* RIGHT COLUMN */}
         <div className={`flex-col overflow-y-auto ${mobileTab === "status" ? "flex" : "hidden"} lg:flex`}>
+
+          {/* Analyze Button */}
+          <div className="p-4 pb-2">
+            <button
+              onClick={() => setShowAnalyzeModal(true)}
+              disabled={isAnalyzing}
+              className="w-full py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-[13px] font-semibold font-mono tracking-[0.15em] uppercase transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              {isAnalyzing ? "ANALYZING..." : "ANALYZE FOOTAGE"}
+            </button>
+          </div>
 
           {/* Telemetry */}
           <div className="p-4">
