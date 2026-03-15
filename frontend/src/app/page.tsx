@@ -336,19 +336,19 @@ function InteractiveDemo() {
    ════════════════════════════════════════════ */
 
 const detectionSets = [
-  [{ label: "PERSON", confidence: 94, top: 28, left: 22, w: 20, h: 32, color: "#CDFF00" }],
+  [{ label: "CAR", confidence: 87, top: 68, left: 57, w: 3.3, h: 5.7, color: "#F59E0B" }],
   [
-    { label: "PERSON", confidence: 91, top: 32, left: 18, w: 18, h: 28, color: "#CDFF00" },
-    { label: "VEHICLE", confidence: 87, top: 42, left: 60, w: 22, h: 18, color: "#F59E0B" },
+    { label: "CAR", confidence: 91, top: 82, left: 81, w: 4.5, h: 5.2, color: "#F59E0B" },
+    { label: "CAR", confidence: 84, top: 68, left: 65, w: 2.9, h: 3.6, color: "#F59E0B" },
   ],
   [
-    { label: "PERSON", confidence: 96, top: 25, left: 35, w: 16, h: 30, color: "#CDFF00" },
-    { label: "DOG", confidence: 78, top: 55, left: 20, w: 14, h: 12, color: "#3B82F6" },
+    { label: "CAR", confidence: 89, top: 68, left: 57, w: 3.3, h: 5.7, color: "#F59E0B" },
+    { label: "BUS", confidence: 82, top: 70, left: 43, w: 5, h: 4, color: "#3B82F6" },
   ],
-  [{ label: "VEHICLE", confidence: 89, top: 38, left: 45, w: 24, h: 16, color: "#F59E0B" }],
+  [{ label: "CAR", confidence: 93, top: 82, left: 81, w: 4.5, h: 5.2, color: "#F59E0B" }],
   [
-    { label: "PERSON", confidence: 92, top: 30, left: 28, w: 18, h: 30, color: "#CDFF00" },
-    { label: "PERSON", confidence: 85, top: 35, left: 55, w: 16, h: 28, color: "#CDFF00" },
+    { label: "CAR", confidence: 86, top: 68, left: 65, w: 2.9, h: 3.6, color: "#F59E0B" },
+    { label: "CAR", confidence: 90, top: 75, left: 52, w: 3.5, h: 4.8, color: "#F59E0B" },
   ],
 ];
 
