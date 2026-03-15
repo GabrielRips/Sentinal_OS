@@ -1396,20 +1396,20 @@ export default function ControlPanel() {
           <div className="w-px h-4 bg-[#364258]" />
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[12px] font-mono text-[#8EA0BA]">BAT</span>
-            <div className="w-16 h-1.5 bg-[#364258]"><div className="h-full w-[78%] bg-[#22C55E]" /></div>
-            <span className="text-[12px] font-mono text-[#EDEDED]">78%</span>
+            <div className="w-16 h-1.5 bg-[#364258]"><div className="h-full w-[0%] bg-[#364258]" /></div>
+            <span className="text-[12px] font-mono text-[#596678]">—</span>
           </div>
           {[
-            { label: "ALT", value: "45.2m" },
-            { label: "SPD", value: "12 km/h" },
-            { label: "GPS", value: gpsTelemetry },
+            { label: "ALT", value: "—" },
+            { label: "SPD", value: "—" },
+            { label: "GPS", value: "N/A" },
             { label: "SIG", value: "—" },
-            { label: "TEMP", value: "32\u00B0C" },
-            { label: "TIME", value: "00:14:32" },
+            { label: "TEMP", value: "—" },
+            { label: "TIME", value: "—" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5 shrink-0">
               <span className="text-[12px] font-mono text-[#8EA0BA]">{item.label}</span>
-              <span className="text-[12px] font-mono text-[#EDEDED]">{item.value}</span>
+              <span className="text-[12px] font-mono text-[#596678]">{item.value}</span>
             </div>
           ))}
         </div>
