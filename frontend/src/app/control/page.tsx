@@ -1247,12 +1247,8 @@ export default function ControlPanel() {
             <button
               onClick={() => setShowAnalyzeModal(true)}
               disabled={isAnalyzing}
-              className="w-full py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white text-[13px] font-semibold font-mono tracking-[0.15em] uppercase transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:from-[#2563EB] hover:to-[#1D4ED8] text-white text-[13px] font-semibold font-mono tracking-[0.18em] uppercase transition-all disabled:opacity-50 border border-[#3B82F6]/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
             >
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
               {isAnalyzing ? "ANALYZING..." : "ANALYZE FOOTAGE"}
             </button>
           </div>
