@@ -1387,7 +1387,12 @@ export default function ControlPanel() {
 
         {/* BOTTOM: Telemetry Bar */}
         <div className="shrink-0 border-t border-[#364258] bg-[#111722] px-4 lg:px-6 py-2.5 flex items-center gap-6 overflow-x-auto">
-          <span className="text-[11px] font-semibold text-[#CDFF00] font-mono tracking-[0.15em] shrink-0">TELEMETRY</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="w-1.5 h-1.5 bg-[#F59E0B] rounded-full" style={{ animation: "processing-pulse 2s ease-in-out infinite" }} />
+            <span className="text-[11px] font-semibold text-[#F59E0B] font-mono tracking-[0.12em] shrink-0">TELEMETRY OFFLINE</span>
+          </div>
+          <div className="w-px h-4 bg-[#364258]" />
+          <span className="text-[12px] font-mono text-[#8EA0BA] shrink-0">Live connection inactive — displaying recorded flight data</span>
           <div className="w-px h-4 bg-[#364258]" />
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[12px] font-mono text-[#8EA0BA]">BAT</span>
@@ -1398,12 +1403,9 @@ export default function ControlPanel() {
             { label: "ALT", value: "45.2m" },
             { label: "SPD", value: "12 km/h" },
             { label: "GPS", value: gpsTelemetry },
-            { label: "SIG", value: "Strong" },
+            { label: "SIG", value: "—" },
             { label: "TEMP", value: "32\u00B0C" },
             { label: "TIME", value: "00:14:32" },
-            { label: "MODEL", value: "Active" },
-            { label: "OBJECTS", value: "847" },
-            { label: "AREA", value: "3.2 km\u00B2" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5 shrink-0">
               <span className="text-[12px] font-mono text-[#8EA0BA]">{item.label}</span>
