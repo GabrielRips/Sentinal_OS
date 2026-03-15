@@ -176,15 +176,15 @@ function deriveNotificationsFromState(payload: DeviceStatePayload): Notification
 const quickCommands = ["Go closer to the tennis balls", "Search area", "Find my friend", "Return home", "Hover", "Land"];
 
 const aiResponses: Record<string, string> = {
-  search: "Beginning area search pattern. Scanning sector 1 of 4. Altitude set to 45m for optimal coverage. I'll alert you the moment anything is detected.",
-  find: "Activating face recognition and scanning the area. Cross-referencing 12 loaded profiles against live feed. Stay close — I'll call it out when I get a match.",
-  friend: "Activating face recognition and scanning the area. Cross-referencing 12 loaded profiles against live feed. Stay close — I'll call it out when I get a match.",
-  return: "Returning to home position. ETA 45 seconds. Current distance: 320m. Plotting optimal return path now.",
-  hover: "Holding position. Altitude: 45.2m. Wind speed: 8 km/h NW. Stable hover confirmed. I'll stay here until your next command.",
-  photo: "Capturing high-resolution photo… Done. Image saved. Resolution: 5472×3648. No additional targets detected in frame.",
-  land: "Initiating landing sequence. Checking landing zone — clear. Descending at 1.5 m/s. Stand by.",
-  scan: "Switching to expanded scan mode. Increasing search radius to 200m. AI detection overlay active.",
-  default: "Command received. Processing your request now. Adjusting flight parameters and updating mission objectives. I'll keep you updated on progress.",
+  search: "Unable to execute — drone is currently offline. No active connection to the flight controller. Please connect a drone to begin operations.",
+  find: "Cannot initiate search — no drone connected. Ensure the drone is powered on and linked to Sentinel OS before running recognition tasks.",
+  friend: "Cannot initiate search — no drone connected. Ensure the drone is powered on and linked to Sentinel OS before running recognition tasks.",
+  return: "Return-to-home unavailable — drone is offline. No active flight session detected.",
+  hover: "Cannot hold position — no drone connected. Connect a drone to enable flight commands.",
+  photo: "Camera unavailable — drone is offline. No live feed or capture hardware connected.",
+  land: "Landing sequence unavailable — no active flight. Drone is currently offline.",
+  scan: "Scan mode unavailable — drone is offline. Connect a drone to enable AI detection overlay.",
+  default: "Command cannot be executed — drone is offline. No active connection to flight controller. Please power on your drone and establish a link through Sentinel OS to begin.",
 };
 
 function getResponse(text: string): string {
