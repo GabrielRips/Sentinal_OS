@@ -642,20 +642,20 @@ export default function ControlPanel() {
 
     // Show thinking steps for analysis
     const analyzeSteps = [
-      { key: "upload", label: "Uploading footage to AI engine", status: "active" as const },
-      { key: "index", label: "Indexing video frames", status: "pending" as const },
-      { key: "process", label: analyzeMode === "search" ? "Searching for matches" : "Running deep analysis", status: "pending" as const },
-      { key: "compile", label: "Compiling results", status: "pending" as const },
+      { key: "upload", label: "Loading footage into vision pipeline", status: "active" as const },
+      { key: "index", label: "Extracting frame features", status: "pending" as const },
+      { key: "process", label: analyzeMode === "search" ? "Running visual search across frames" : "Running deep scene analysis", status: "pending" as const },
+      { key: "compile", label: "Compiling detection report", status: "pending" as const },
     ];
     setThinkingSteps(analyzeSteps);
-    setAgentStatus("Twelve Labs AI Analysis");
+    setAgentStatus("SENTINEL VISION ENGINE");
     setIsThinking(true);
 
     // Animate steps while waiting
     const stepTimers = [
       setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "upload" ? { ...s, status: "done" as const } : s.key === "index" ? { ...s, status: "active" as const } : s)), 3000),
       setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "index" ? { ...s, status: "done" as const } : s.key === "process" ? { ...s, status: "active" as const } : s)), 8000),
-      setTimeout(() => setVideoStatus("Processing with Twelve Labs AI..."), 5000),
+      setTimeout(() => setVideoStatus("Vision engine processing frames..."), 5000),
     ];
 
     try {
@@ -690,7 +690,7 @@ export default function ControlPanel() {
           responseText = header + matches;
         }
       } else {
-        responseText = `━━━ ANALYSIS COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nEngine: Pegasus 1.2\n\n${json.data || "No additional details returned."}`;
+        responseText = `━━━ ANALYSIS COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nEngine: Sentinel Vision v2.1\n\n${json.data || "No additional details returned."}`;
       }
 
       setIsThinking(false);
@@ -1458,7 +1458,7 @@ export default function ControlPanel() {
                 </h3>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-mono text-[#3B82F6]/60 tracking-wider">TWELVE LABS</span>
+                <span className="text-[10px] font-mono text-[#3B82F6]/60 tracking-wider">SENTINEL AI</span>
                 <button
                   onClick={() => setShowAnalyzeModal(false)}
                   className="text-[#5A6578] hover:text-[#F4F7FC] w-6 h-6 flex items-center justify-center hover:bg-[#1E2736] transition-colors text-sm"
@@ -1546,7 +1546,7 @@ export default function ControlPanel() {
 
             <div className="px-5 py-4 border-t border-[#1E2736] bg-[#080B10]/80 flex items-center justify-between">
               <span className="text-[9px] font-mono text-[#3A4454] tracking-wider">
-                {analyzeMode === "analyze" ? "PEGASUS 1.2" : "MARENGO 2.7"} ENGINE
+                {analyzeMode === "analyze" ? "DEEP ANALYSIS" : "VISUAL SEARCH"} MODE
               </span>
               <button
                 onClick={handleAnalyze}
