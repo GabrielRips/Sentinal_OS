@@ -415,54 +415,12 @@ export default function ControlPanel() {
   }, []);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setLocationStatus("GPS unavailable in browser");
-      setLocationError("This browser does not support geolocation.");
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const next = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-
-        setCurrentPosition(next);
-        setHomePosition((prev) => prev ?? next);
-        setFlightPath((prev) => {
-          const last = prev[prev.length - 1];
-          const changed = !last || last[0] !== next.lat || last[1] !== next.lng;
-          if (!changed) return prev;
-          const nextPath: [number, number][] = [...prev, [next.lat, next.lng]];
-          return nextPath.length > 120 ? nextPath.slice(nextPath.length - 120) : nextPath;
-        });
-
-        setLocationError(null);
-        setLocationStatus("Live GPS tracking");
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationStatus("Location permission denied");
-          setLocationError("Allow location access to show your live position on the map.");
-          return;
-        }
-        if (error.code === error.TIMEOUT) {
-          setLocationStatus("GPS timeout");
-          setLocationError("Timed out waiting for location update.");
-          return;
-        }
-        setLocationStatus("GPS signal unavailable");
-        setLocationError(error.message || "Unable to read device location.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 5000,
-      }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
+    // Demo mode — use hardcoded coordinates instead of requesting location permission
+    const demoPos = { lat: -33.8688, lng: 151.2093 };
+    setCurrentPosition(demoPos);
+    setHomePosition(demoPos);
+    setLocationStatus("Demo mode — recorded flight data");
+    setLocationError(null);
   }, []);
 
   useEffect(() => {
