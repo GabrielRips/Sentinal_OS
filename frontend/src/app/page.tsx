@@ -392,19 +392,6 @@ function LiveFeedTile() {
           <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[#CDFF00]" />
         </div>
       </div>
-      {dets.map((d, i) => (
-        <div key={`${detIdx}-${i}`} className="absolute border border-dashed z-20 animate-detection-appear"
-          style={{ top: `${d.top}%`, left: `${d.left}%`, width: `${d.w}%`, height: `${d.h}%`, borderColor: `${d.color}80` }}>
-          <div className="absolute -top-4 left-0 text-[8px] font-mono px-1.5 py-0.5 whitespace-nowrap"
-            style={{ color: d.color, backgroundColor: `${d.color}18` }}>{d.label} {d.confidence}%</div>
-          <div className="absolute -top-px -left-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -top-px -right-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -bottom-px -left-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-          <div className="absolute -bottom-px -right-px w-1 h-1" style={{ backgroundColor: `${d.color}60` }} />
-        </div>
-      ))}
-      {flash && <div className="absolute z-10 w-24 h-24 rounded-full border border-[#CDFF00]/30"
-        style={{ top: `${dets[0]?.top ?? 50}%`, left: `${dets[0]?.left ?? 50}%`, animation: "pulse-ring 1.5s ease-out forwards" }} />}
       <div className="absolute bottom-0 left-0 right-0 bg-[#0A0A0A]/90 border-t border-[#1A1A1A] px-3 py-1.5 flex items-center gap-4 z-20">
         <span className="text-[9px] font-mono text-red-400 flex items-center gap-1"><span className="w-1 h-1 bg-red-500 animate-pulse-dot" />REC</span>
         <span className="text-[9px] font-mono text-[#999]">{fmt(recTime)}</span>
