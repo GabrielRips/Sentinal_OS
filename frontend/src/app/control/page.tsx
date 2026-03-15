@@ -635,23 +635,93 @@ export default function ControlPanel() {
     if (!analyzeQuery.trim() || isAnalyzing) return;
     setIsAnalyzing(true);
     setShowAnalyzeModal(false);
-    setVideoStatus("Uploading & indexing footage...");
 
+    const isSearch = analyzeMode === "search";
     const id = ++idRef.current;
-    setMessages((prev) => [...prev, { id, role: "user", text: `${analyzeMode === "search" ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}`, displayText: `${analyzeMode === "search" ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}` }]);
+    setMessages((prev) => [...prev, { id, role: "user", text: `${isSearch ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}`, displayText: `${isSearch ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}` }]);
 
-    // Show thinking steps for analysis
+    if (isSearch) {
+      // ─── SEARCH MODE: Query Elasticsearch ───
+      setVideoStatus("Searching detection index...");
+      const searchSteps = [
+        { key: "query", label: "Querying object detection database", status: "active" as const },
+        { key: "match", label: "Matching against indexed detections", status: "pending" as const },
+        { key: "compile", label: "Compiling timestamp report", status: "pending" as const },
+      ];
+      setThinkingSteps(searchSteps);
+      setAgentStatus("SENTINEL OBJECT SEARCH");
+      setIsThinking(true);
+
+      const stepTimers = [
+        setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "query" ? { ...s, status: "done" as const } : s.key === "match" ? { ...s, status: "active" as const } : s)), 800),
+        setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "match" ? { ...s, status: "done" as const } : s.key === "compile" ? { ...s, status: "active" as const } : s)), 1500),
+      ];
+
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: analyzeQuery }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Search failed");
+
+        setThinkingSteps(prev => prev.map(s => ({ ...s, status: "done" as const })));
+        await new Promise(r => setTimeout(r, 300));
+
+        let responseText = "";
+        if (!json.found) {
+          const available = (json.available_classes || []).join(", ");
+          responseText = `━━━ SEARCH COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nStatus: NOT FOUND\n\nNo "${analyzeQuery}" detected in the indexed footage.\n\n${available ? `Available objects: ${available}` : "No detections indexed yet."}`;
+        } else {
+          const entries = Object.entries(json.results) as [string, { intervals: { start: number; end: number; start_str: string; end_str: string }[]; total_time: number }][];
+          let body = "";
+          for (const [cls, data] of entries) {
+            const timeRanges = data.intervals.map(i => `${i.start_str} → ${i.end_str}`).join(", ");
+            body += `┌─ ${cls.toUpperCase()} ─────────────────────\n│  Appearances: ${data.intervals.length}\n│  Timestamps:  ${timeRanges}\n│  Total time:  ${data.total_time.toFixed(1)}s on screen\n└────────────────────────────────\n\n`;
+          }
+          const totalIntervals = entries.reduce((sum, [, d]) => sum + d.intervals.length, 0);
+          responseText = `━━━ SEARCH COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nMatches: ${totalIntervals} interval(s) across ${entries.length} class(es)\n\n${body.trim()}`;
+        }
+
+        setIsThinking(false);
+        setAgentStatus("");
+        const aiId = ++idRef.current;
+        setMessages((prev) => [...prev, { id: aiId, role: "ai", text: responseText, displayText: "" }]);
+        let i = 0;
+        const iv = setInterval(() => {
+          i = Math.min(i + 4, responseText.length);
+          setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, displayText: responseText.slice(0, i) } : m)));
+          if (i >= responseText.length) clearInterval(iv);
+        }, 10);
+        setVideoStatus("Search complete — results in chat");
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : "Search failed";
+        setIsThinking(false);
+        setAgentStatus("");
+        const aiId = ++idRef.current;
+        setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `[ERROR] Search failed: ${errMsg}`, displayText: `[ERROR] Search failed: ${errMsg}` }]);
+        setVideoStatus("Search failed");
+      } finally {
+        stepTimers.forEach(clearTimeout);
+        setIsAnalyzing(false);
+        setAnalyzeQuery("");
+      }
+      return;
+    }
+
+    // ─── ANALYZE MODE: Twelve Labs deep analysis ───
+    setVideoStatus("Preparing deep analysis...");
     const analyzeSteps = [
       { key: "upload", label: "Loading footage into vision pipeline", status: "active" as const },
       { key: "index", label: "Extracting frame features", status: "pending" as const },
-      { key: "process", label: analyzeMode === "search" ? "Running visual search across frames" : "Running deep scene analysis", status: "pending" as const },
+      { key: "process", label: "Running deep scene analysis", status: "pending" as const },
       { key: "compile", label: "Compiling detection report", status: "pending" as const },
     ];
     setThinkingSteps(analyzeSteps);
     setAgentStatus("SENTINEL VISION ENGINE");
     setIsThinking(true);
 
-    // Animate steps while waiting
     const stepTimers = [
       setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "upload" ? { ...s, status: "done" as const } : s.key === "index" ? { ...s, status: "active" as const } : s)), 3000),
       setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "index" ? { ...s, status: "done" as const } : s.key === "process" ? { ...s, status: "active" as const } : s)), 8000),
@@ -662,7 +732,7 @@ export default function ControlPanel() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: analyzeQuery, mode: analyzeMode }),
+        body: JSON.stringify({ query: analyzeQuery, mode: "analyze" }),
       });
 
       const json = await res.json();
@@ -671,27 +741,10 @@ export default function ControlPanel() {
         throw new Error(json.error || "Analysis failed");
       }
 
-      // Finish all steps
       setThinkingSteps(prev => prev.map(s => ({ ...s, status: "done" as const })));
       await new Promise(r => setTimeout(r, 400));
 
-      let responseText = "";
-      if (json.type === "search" && Array.isArray(json.results)) {
-        if (json.results.length === 0) {
-          responseText = `━━━ SCAN COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nStatus: NO MATCHES\n\nThe AI engine found no visual matches in the analyzed footage. Consider:\n• Broadening search terms\n• Using ANALYZE mode for open-ended detection\n• Checking footage timestamp range`;
-        } else {
-          const header = `━━━ SCAN COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nTargets found: ${json.results.length}\n\n`;
-          const matches = json.results.map((r: { start: number; end: number; score: number; confidence: string }, i: number) => {
-            const pct = Math.round((r.score || 0) * 100);
-            const bar = "█".repeat(Math.round(pct / 10)) + "░".repeat(10 - Math.round(pct / 10));
-            const dur = (r.end - r.start).toFixed(1);
-            return `┌─ TARGET ${String(i + 1).padStart(2, "0")} ─────────────────\n│  Time:       ${r.start.toFixed(1)}s → ${r.end.toFixed(1)}s (${dur}s)\n│  Confidence: ${bar} ${pct}%\n│  Rating:     ${r.confidence.toUpperCase()}\n└──────────────────────────`;
-          }).join("\n\n");
-          responseText = header + matches;
-        }
-      } else {
-        responseText = `━━━ ANALYSIS COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nEngine: Sentinel Vision v2.1\n\n${json.data || "No additional details returned."}`;
-      }
+      const responseText = `━━━ ANALYSIS COMPLETE ━━━\n\nQuery: "${analyzeQuery}"\nEngine: Sentinel Vision v2.1\n\n${json.data || "No additional details returned."}`;
 
       setIsThinking(false);
       setAgentStatus("");
@@ -1469,10 +1522,35 @@ export default function ControlPanel() {
             </div>
 
             <div className="p-5 space-y-5">
+              {/* Mode toggle */}
+              <div className="flex gap-0 border border-[#1E2736] overflow-hidden">
+                <button
+                  onClick={() => { setAnalyzeMode("analyze"); setAnalyzeQuery(""); }}
+                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all ${
+                    analyzeMode === "analyze"
+                      ? "bg-[#3B82F6] text-white shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]"
+                      : "bg-[#0A0E14] text-[#8B96A8] hover:text-[#B6C2D5] hover:bg-[#111722]"
+                  }`}
+                >
+                  ANALYZE
+                </button>
+                <div className="w-px bg-[#1E2736]" />
+                <button
+                  onClick={() => { setAnalyzeMode("search"); setAnalyzeQuery(""); }}
+                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all ${
+                    analyzeMode === "search"
+                      ? "bg-[#CDFF00] text-[#0A0A0A] font-semibold shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]"
+                      : "bg-[#0A0E14] text-[#8B96A8] hover:text-[#B6C2D5] hover:bg-[#111722]"
+                  }`}
+                >
+                  OBJECT SEARCH
+                </button>
+              </div>
+
               {/* Input */}
               <div>
                 <label className="block text-[10px] font-mono text-[#8B96A8] tracking-[0.2em] mb-2.5 uppercase">
-                  What do you want to analyze?
+                  {analyzeMode === "search" ? "Search for an object" : "Describe what to analyze"}
                 </label>
                 <div className="relative">
                   <input
@@ -1480,7 +1558,7 @@ export default function ControlPanel() {
                     value={analyzeQuery}
                     onChange={(e) => setAnalyzeQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                    placeholder="Describe all activity in the footage..."
+                    placeholder={analyzeMode === "search" ? "e.g. car, person, dog..." : "e.g. Describe all activity in the footage..."}
                     autoFocus
                     className="w-full bg-[#080B10] border border-[#1E2736] px-4 py-3.5 text-sm text-[#F4F7FC] placeholder:text-[#6B7A8D] focus:outline-none focus:border-[#3B82F6]/60 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all font-mono"
                   />
@@ -1496,14 +1574,19 @@ export default function ControlPanel() {
               <div>
                 <p className="text-[10px] font-mono text-[#6B7A8D] tracking-[0.2em] mb-2.5 uppercase">Quick select</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"].map((s, idx) => (
+                  {(analyzeMode === "search"
+                    ? ["person", "car", "dog", "fire hydrant", "airplane", "sports ball"]
+                    : ["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"]
+                  ).map((s, idx) => (
                     <button
                       key={s}
                       onClick={() => setAnalyzeQuery(s)}
                       style={{ animation: `result-slide 0.3s ease-out ${idx * 0.05}s both` }}
                       className={`px-3 py-1.5 text-[11px] font-mono border transition-all ${
                         analyzeQuery === s
-                          ? "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
+                          ? analyzeMode === "search"
+                            ? "border-[#CDFF00]/40 bg-[#CDFF00]/8 text-[#CDFF00]"
+                            : "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
                           : "border-[#1E2736] text-[#8B96A8] hover:text-[#B6C2D5] hover:border-[#364258] hover:bg-[#111722]"
                       }`}
                     >
@@ -1516,14 +1599,18 @@ export default function ControlPanel() {
 
             <div className="px-5 py-4 border-t border-[#1E2736] bg-[#080B10]/80 flex items-center justify-between">
               <span className="text-[9px] font-mono text-[#6B7A8D] tracking-wider">
-                SENTINEL VISION ENGINE
+                {analyzeMode === "search" ? "YOLO + ELASTICSEARCH" : "SENTINEL VISION ENGINE"}
               </span>
               <button
                 onClick={handleAnalyze}
                 disabled={!analyzeQuery.trim()}
-                className="px-8 py-2.5 text-[12px] font-mono font-semibold tracking-[0.18em] transition-all disabled:opacity-20 disabled:cursor-not-allowed relative overflow-hidden bg-[#3B82F6] text-white hover:bg-[#2563EB] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                className={`px-8 py-2.5 text-[12px] font-mono font-semibold tracking-[0.18em] transition-all disabled:opacity-20 disabled:cursor-not-allowed relative overflow-hidden ${
+                  analyzeMode === "search"
+                    ? "bg-[#CDFF00] text-[#0A0A0A] hover:bg-[#d8ff33] hover:shadow-[0_0_20px_rgba(205,255,0,0.2)]"
+                    : "bg-[#3B82F6] text-white hover:bg-[#2563EB] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                }`}
               >
-                ANALYZE
+                {analyzeMode === "search" ? "SEARCH" : "ANALYZE"}
               </button>
             </div>
           </div>
