@@ -901,22 +901,9 @@ export default function ControlPanel() {
       setInput("");
       setTranscript("");
 
-      try {
-        let finalText = "";
-        if (USE_REAL_AGENT_STREAM) {
-          finalText = await runRealAgentThinking(text);
-        } else {
-          await runDemoThinking(text);
-        }
-        addAIMessage(finalText || getResponse(text));
-      } catch {
-        await runDemoThinking(text);
-        addAIMessage(getResponse(text));
-      } finally {
-        setIsThinking(false);
-        setAgentStatus("");
-        setIsAgentRunning(false);
-      }
+      // Drone is offline — skip tool sequence, respond immediately
+      addAIMessage(getResponse(text));
+      setIsAgentRunning(false);
     },
     [addAIMessage, isAgentRunning, runDemoThinking, runRealAgentThinking]
   );
