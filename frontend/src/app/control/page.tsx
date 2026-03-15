@@ -1469,35 +1469,10 @@ export default function ControlPanel() {
             </div>
 
             <div className="p-5 space-y-5">
-              {/* Mode toggle */}
-              <div className="flex gap-0 border border-[#1E2736] overflow-hidden">
-                <button
-                  onClick={() => setAnalyzeMode("analyze")}
-                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all relative ${
-                    analyzeMode === "analyze"
-                      ? "bg-[#3B82F6] text-white shadow-[inset_0_0_20px_rgba(0,0,0,0.2)]"
-                      : "bg-[#0A0E14] text-[#5A6578] hover:text-[#A3ADBC] hover:bg-[#111722]"
-                  }`}
-                >
-                  ANALYZE
-                </button>
-                <div className="w-px bg-[#1E2736]" />
-                <button
-                  onClick={() => setAnalyzeMode("search")}
-                  className={`flex-1 py-3 text-[12px] font-mono tracking-[0.15em] transition-all ${
-                    analyzeMode === "search"
-                      ? "bg-[#CDFF00] text-[#0A0A0A] font-semibold shadow-[inset_0_0_20px_rgba(0,0,0,0.1)]"
-                      : "bg-[#0A0E14] text-[#5A6578] hover:text-[#A3ADBC] hover:bg-[#111722]"
-                  }`}
-                >
-                  SEARCH
-                </button>
-              </div>
-
               {/* Input */}
               <div>
                 <label className="block text-[10px] font-mono text-[#5A6578] tracking-[0.2em] mb-2.5 uppercase">
-                  {analyzeMode === "analyze" ? "Analysis prompt" : "Search query"}
+                  What do you want to analyze?
                 </label>
                 <div className="relative">
                   <input
@@ -1505,7 +1480,7 @@ export default function ControlPanel() {
                     value={analyzeQuery}
                     onChange={(e) => setAnalyzeQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                    placeholder={analyzeMode === "analyze" ? "Describe all activity in the footage..." : "people, vehicles, fire, buildings..."}
+                    placeholder="Describe all activity in the footage..."
                     autoFocus
                     className="w-full bg-[#080B10] border border-[#1E2736] px-4 py-3.5 text-sm text-[#F4F7FC] placeholder:text-[#3A4454] focus:outline-none focus:border-[#3B82F6]/60 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all font-mono"
                   />
@@ -1521,19 +1496,14 @@ export default function ControlPanel() {
               <div>
                 <p className="text-[10px] font-mono text-[#3A4454] tracking-[0.2em] mb-2.5 uppercase">Quick select</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {(analyzeMode === "search"
-                    ? ["people walking", "vehicles moving", "fire or smoke", "buildings", "animals", "crowd gathering"]
-                    : ["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"]
-                  ).map((s, idx) => (
+                  {["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"].map((s, idx) => (
                     <button
                       key={s}
                       onClick={() => setAnalyzeQuery(s)}
                       style={{ animation: `result-slide 0.3s ease-out ${idx * 0.05}s both` }}
                       className={`px-3 py-1.5 text-[11px] font-mono border transition-all ${
                         analyzeQuery === s
-                          ? analyzeMode === "search"
-                            ? "border-[#CDFF00]/40 bg-[#CDFF00]/8 text-[#CDFF00]"
-                            : "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
+                          ? "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
                           : "border-[#1E2736] text-[#5A6578] hover:text-[#A3ADBC] hover:border-[#2B3342] hover:bg-[#111722]"
                       }`}
                     >
@@ -1546,18 +1516,14 @@ export default function ControlPanel() {
 
             <div className="px-5 py-4 border-t border-[#1E2736] bg-[#080B10]/80 flex items-center justify-between">
               <span className="text-[9px] font-mono text-[#3A4454] tracking-wider">
-                {analyzeMode === "analyze" ? "DEEP ANALYSIS" : "VISUAL SEARCH"} MODE
+                SENTINEL VISION ENGINE
               </span>
               <button
                 onClick={handleAnalyze}
                 disabled={!analyzeQuery.trim()}
-                className={`px-8 py-2.5 text-[12px] font-mono font-semibold tracking-[0.18em] transition-all disabled:opacity-20 disabled:cursor-not-allowed relative overflow-hidden ${
-                  analyzeMode === "search"
-                    ? "bg-[#CDFF00] text-[#0A0A0A] hover:bg-[#d8ff33] hover:shadow-[0_0_20px_rgba(205,255,0,0.2)]"
-                    : "bg-[#3B82F6] text-white hover:bg-[#2563EB] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-                }`}
+                className="px-8 py-2.5 text-[12px] font-mono font-semibold tracking-[0.18em] transition-all disabled:opacity-20 disabled:cursor-not-allowed relative overflow-hidden bg-[#3B82F6] text-white hover:bg-[#2563EB] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]"
               >
-                {analyzeMode === "search" ? "SEARCH" : "ANALYZE"}
+                ANALYZE
               </button>
             </div>
           </div>
