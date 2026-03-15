@@ -7,13 +7,13 @@ export default function Navbar() {
         <img
           src="/sentinel-os.png"
           alt="Sentinel OS"
-          style={{ height: '32px', width: 'auto' }}
+          style={{ height: "24px", width: "auto" }}
         />
       </Link>
 
       <Link
         href="/control"
-        className="text-xs tracking-[0.1em] uppercase text-[#0A0A0A] bg-[#CDFF00] hover:bg-[#d8ff33] px-5 py-2 transition-colors duration-200 font-medium"
+        className="text-[11px] tracking-[0.12em] uppercase text-[#0F141D] bg-[#F4F7FC] hover:bg-white px-4 py-1.5 transition-colors duration-200 font-semibold border border-[#2B3342]"
       >
         Launch
       </Link>
