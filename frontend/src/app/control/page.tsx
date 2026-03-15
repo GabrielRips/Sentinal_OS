@@ -346,7 +346,7 @@ export default function ControlPanel() {
   const [analyzeMode, setAnalyzeMode] = useState<"analyze" | "search">("analyze");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [videoStatus, setVideoStatus] = useState(
-    videoConfig.isRealFeedActive ? "Connected to live stream" : "Demo mode: local MP4 playback"
+    videoConfig.isRealFeedActive ? "Connected to live stream" : "Live feed inactive — showcasing recorded footage"
   );
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -1065,12 +1065,14 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0">
-        {/* LEFT COLUMN */}
-        <div className={`flex-col border-r border-[#364258] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* TOP: Video + Chat side by side */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-0">
+          {/* LEFT: Video Feed */}
+          <div className={`flex-col border-r border-[#364258] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
 
           {/* Video Feed */}
-          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#364258] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
+          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#364258] overflow-hidden shrink-0 flex-1">
             <div
               className="absolute left-0 right-0 h-px bg-[#CDFF00]/15"
               style={{ top: `${scanY}%` }}
@@ -1106,10 +1108,10 @@ export default function ControlPanel() {
                   setVideoStatus(videoConfig.isRealFeedActive ? "Live stream connected" : "Demo feed loaded");
                 }}
                 onError={() => {
-                  setStreamError("Unable to load video stream. Check your stream URL and CORS settings.");
-                  setVideoStatus("Stream connection failed");
+                  setStreamError(null);
+                  setVideoStatus("Live feed inactive — showcasing recorded footage");
                 }}
-                className="absolute inset-0 w-full h-full object-cover opacity-25"
+                className="absolute inset-0 w-full h-full object-cover opacity-60"
               >
                 <source src={videoConfig.sourceUrl} />
               </video>
@@ -1150,10 +1152,11 @@ export default function ControlPanel() {
           </div>
           <div className="px-2 lg:px-3 pb-2">
             <p className="text-[12px] font-mono text-[#8EA0BA] tracking-wide">{videoStatus}</p>
-            {streamError && <p className="text-[12px] font-mono text-[#F87171] mt-1">{streamError}</p>}
           </div>
+        </div>
 
-          {/* LLM Chat */}
+          {/* RIGHT: Command Center Chat */}
+          <div className={`flex-col overflow-hidden ${mobileTab === "status" ? "flex" : "hidden"} lg:flex`}>
           <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#364258] bg-[#111722] overflow-hidden min-h-0">
 
             {/* Chat header */}
@@ -1356,17 +1359,13 @@ export default function ControlPanel() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className={`flex-col overflow-y-auto ${mobileTab === "status" ? "flex" : "hidden"} lg:flex`}>
 
           {/* Analyze Button */}
-          <div className="p-4 pb-2">
+          <div className="p-3 pt-0">
             <button
               onClick={() => setShowAnalyzeModal(true)}
               disabled={isAnalyzing}
-              className={`w-full py-3.5 text-[13px] font-semibold font-mono tracking-[0.18em] uppercase transition-all border relative overflow-hidden ${
+              className={`w-full py-3 text-[13px] font-semibold font-mono tracking-[0.18em] uppercase transition-all border relative overflow-hidden ${
                 isAnalyzing
                   ? "analyze-btn-active bg-[#141A24] text-[#3B82F6] border-[#3B82F6]/50"
                   : "analyze-btn-idle bg-gradient-to-r from-[#3B82F6] to-[#2563EB] hover:from-[#2563EB] hover:to-[#1D4ED8] text-white border-[#3B82F6]/30"
@@ -1383,104 +1382,34 @@ export default function ControlPanel() {
             </button>
           </div>
 
-          {/* Telemetry */}
-          <div className="p-4">
-            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
-              Telemetry
-            </h3>
-            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-4">
-              <div>
-                <div className="flex justify-between text-[13px] mb-1.5">
-                  <span className="text-[#B6C2D5] font-mono">BATTERY</span>
-                  <span className="font-mono text-[#EDEDED]">78%</span>
-                </div>
-                <div className="w-full h-1.5 bg-[#364258]">
-                  <div className="h-full w-[78%] bg-[#22C55E]" />
-                </div>
-              </div>
-              {[
-                { label: "ALTITUDE",    value: "45.2m" },
-                { label: "SPEED",       value: "12 km/h" },
-                { label: "GPS",         value: gpsTelemetry },
-                { label: "SIGNAL",      value: "Strong" },
-                { label: "TEMP",        value: "32\u00B0C" },
-                { label: "FLIGHT TIME", value: "00:14:32" },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between text-[13px]">
-                  <span className="text-[#B6C2D5] font-mono">{item.label}</span>
-                  <span className="font-mono text-[#EDEDED]">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        </div>
+        </div>
 
-          {/* GPS Map */}
-          <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
-              GPS Tracker
-            </h3>
-            <div className="border border-[#364258] bg-[#131A26] overflow-hidden">
-              <div className="h-[220px] bg-[#0F141D]">
-                <LiveGpsMap
-                  currentPosition={currentPosition}
-                  homePosition={homePosition}
-                  flightPath={flightPath}
-                />
-              </div>
-              <div className="px-3 py-2 border-t border-[#364258] bg-[#151D2A] flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#B6C2D5] tracking-wider">{locationStatus}</span>
-                <span className="text-[11px] font-mono text-[#E8EDFB]">
-                  {currentPosition
-                    ? `${formatCoordinate(currentPosition.lat, "N", "S")} ${formatCoordinate(currentPosition.lng, "E", "W")}`
-                    : "Waiting for coordinates"}
-                </span>
-              </div>
-              {locationError && (
-                <div className="px-3 py-2 border-t border-[#364258] bg-[#131A26] text-[12px] font-mono text-[#F59E0B]">
-                  {locationError}
-                </div>
-              )}
-            </div>
+        {/* BOTTOM: Telemetry Bar */}
+        <div className="shrink-0 border-t border-[#364258] bg-[#111722] px-4 lg:px-6 py-2.5 flex items-center gap-6 overflow-x-auto">
+          <span className="text-[11px] font-semibold text-[#CDFF00] font-mono tracking-[0.15em] shrink-0">TELEMETRY</span>
+          <div className="w-px h-4 bg-[#364258]" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[12px] font-mono text-[#8EA0BA]">BAT</span>
+            <div className="w-16 h-1.5 bg-[#364258]"><div className="h-full w-[78%] bg-[#22C55E]" /></div>
+            <span className="text-[12px] font-mono text-[#EDEDED]">78%</span>
           </div>
-
-          {/* AI Status */}
-          <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
-              AI Status
-            </h3>
-            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
-              {[
-                { label: "MODEL",            value: "Active",   accent: "#22C55E" },
-                { label: "FACES DB",         value: "12 loaded", accent: "#22C55E" },
-                { label: "OBJECTS DETECTED", value: "847",       accent: "#CDFF00" },
-                { label: "AREA SCANNED",     value: "3.2 km\u00B2", accent: "#CDFF00" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between text-[13px]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1 h-1" style={{ backgroundColor: item.accent }} />
-                    <span className="text-[#B6C2D5] font-mono">{item.label}</span>
-                  </div>
-                  <span className="font-mono text-[#EDEDED]">{item.value}</span>
-                </div>
-              ))}
+          {[
+            { label: "ALT", value: "45.2m" },
+            { label: "SPD", value: "12 km/h" },
+            { label: "GPS", value: gpsTelemetry },
+            { label: "SIG", value: "Strong" },
+            { label: "TEMP", value: "32\u00B0C" },
+            { label: "TIME", value: "00:14:32" },
+            { label: "MODEL", value: "Active" },
+            { label: "OBJECTS", value: "847" },
+            { label: "AREA", value: "3.2 km\u00B2" },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[12px] font-mono text-[#8EA0BA]">{item.label}</span>
+              <span className="text-[12px] font-mono text-[#EDEDED]">{item.value}</span>
             </div>
-          </div>
-
-          {/* Notifications */}
-          <div className="px-4 pb-4 flex-1">
-            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
-              Events
-            </h3>
-            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
-              {notifications.map((n) => (
-                <div key={n.id} className="flex gap-3 text-[13px] leading-relaxed">
-                  <span className="font-mono text-[#B6C2D5] shrink-0">{n.time}</span>
-                  <span className="w-1 h-1 mt-1.5 shrink-0" style={{ backgroundColor: n.accent }} />
-                  <span className="text-[#E8EDFB]">{n.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
