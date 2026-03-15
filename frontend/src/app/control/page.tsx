@@ -48,7 +48,9 @@ interface ThinkingStep {
 
 interface AgentStreamEvent {
   type: string;
+  status?: "queued" | "running" | "done" | "error";
   toolName?: string;
+  result?: { ok?: boolean };
   finalMessage?: string;
   error?: string;
 }
@@ -171,7 +173,7 @@ function deriveNotificationsFromState(payload: DeviceStatePayload): Notification
     .slice(0, MAX_NOTIFICATIONS);
 }
 
-const quickCommands = ["Search area", "Find my friend", "Return home", "Hover", "Take photo", "Land"];
+const quickCommands = ["Go closer to the tennis balls", "Search area", "Find my friend", "Return home", "Hover", "Land"];
 
 const aiResponses: Record<string, string> = {
   search: "Beginning area search pattern. Scanning sector 1 of 4. Altitude set to 45m for optimal coverage. I'll alert you the moment anything is detected.",
@@ -217,6 +219,9 @@ function getSupportedMediaRecorderMimeType(): string | undefined {
 const IS_PROD = process.env.NODE_ENV === "production";
 const AGENT_ENV = process.env.NEXT_PUBLIC_AGENT_ENV ?? (IS_PROD ? "real" : "demo");
 const USE_REAL_AGENT_STREAM = AGENT_ENV === "real";
+const DEMO_STEP_DELAY_MS = Number(process.env.NEXT_PUBLIC_AGENT_DEMO_STEP_DELAY_MS || 1000);
+const DEMO_ACTION_DELAY_MS = Number(process.env.NEXT_PUBLIC_AGENT_DEMO_ACTION_DELAY_MS || 1500);
+const ACTION_TOOLS = new Set(["send_drone_command", "set_virtual_sticks"]);
 
 const AGENT_TOOL_LABELS: Record<string, string> = {
   get_device_state: "Checking device link",
@@ -225,6 +230,9 @@ const AGENT_TOOL_LABELS: Record<string, string> = {
   plan_route: "Planning safe route",
   capture_rtmp_frame: "Capturing live frame",
   analyze_frame: "Analyzing scene",
+  estimate_target_offset: "Estimating ball offset",
+  generate_action_candidates: "Generating movement options",
+  safety_filter_actions: "Applying safety filters",
   send_drone_command: "Preparing control command",
   set_virtual_sticks: "Tuning virtual sticks",
 };
@@ -234,6 +242,11 @@ const DEMO_SEQUENCE = [
   "get_current_gps",
   "capture_rtmp_frame",
   "analyze_frame",
+  "estimate_target_offset",
+  "generate_action_candidates",
+  "safety_filter_actions",
+  "send_drone_command",
+  "set_virtual_sticks",
   "send_drone_command",
 ];
 
@@ -251,6 +264,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function pickDemoSequence(text: string): string[] {
   const lower = text.toLowerCase();
+  if (lower.includes("tennis")) {
+    return DEMO_SEQUENCE;
+  }
   if (lower.includes("search") || lower.includes("find") || lower.includes("friend")) {
     return SEARCH_SEQUENCE;
   }
@@ -299,6 +315,7 @@ function WaveformBars({
 
 export default function ControlPanel() {
   const videoConfig = getDroneVideoConfig();
+  const isYouTubeEmbed = videoConfig.sourceType === "youtube" && !!videoConfig.youtubeEmbedUrl;
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [scanY, setScanY] = useState(0);
@@ -336,6 +353,22 @@ export default function ControlPanel() {
   const recognitionRef = useRef<any>(null);
   const idRef = useRef(initialMessages.length);
   const voiceEnabledRef = useRef(voiceEnabled);
+
+  const setQueuedToolStep = useCallback((toolName: string) => {
+    const key = toolName || "agent";
+    const label = AGENT_TOOL_LABELS[key] || key.replaceAll("_", " ");
+    setThinkingSteps((prev) => {
+      const index = prev.findIndex((step) => step.key === key);
+      if (index >= 0) {
+        const next = [...prev];
+        if (next[index].status === "done" || next[index].status === "error") {
+          next[index] = { ...next[index], status: "pending" };
+        }
+        return next;
+      }
+      return [...prev, { key, label, status: "pending" }];
+    });
+  }, []);
 
   const setActiveToolStep = useCallback((toolName: string) => {
     const key = toolName || "agent";
@@ -485,6 +518,11 @@ export default function ControlPanel() {
   }, []);
 
   const startRecording = useCallback(async () => {
+    if (isYouTubeEmbed) {
+      setVideoStatus("YouTube embed mode: use a direct stream URL for REC");
+      return;
+    }
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -539,7 +577,7 @@ export default function ControlPanel() {
       setIsRecording(false);
       setVideoStatus("Unable to start recording");
     }
-  }, [downloadBlob]);
+  }, [downloadBlob, isYouTubeEmbed]);
 
   const handleRecordToggle = useCallback(() => {
     if (isRecording) {
@@ -550,6 +588,11 @@ export default function ControlPanel() {
   }, [isRecording, startRecording, stopRecording]);
 
   const handleCapture = useCallback(async () => {
+    if (isYouTubeEmbed) {
+      setVideoStatus("YouTube embed mode: use a direct stream URL for CAPTURE");
+      return;
+    }
+
     const video = videoRef.current;
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) {
       setVideoStatus("Feed not ready for capture");
@@ -582,7 +625,7 @@ export default function ControlPanel() {
     } catch {
       setVideoStatus("Capture blocked by stream security settings");
     }
-  }, [downloadBlob]);
+  }, [downloadBlob, isYouTubeEmbed]);
 
   const speakText = useCallback((text: string, msgId: number) => {
     if (typeof window === "undefined" || !voiceEnabledRef.current) return;
@@ -629,26 +672,34 @@ export default function ControlPanel() {
   );
 
   const runDemoThinking = useCallback(async (text: string) => {
-    const steps = pickDemoSequence(text).map((toolName) => ({
-      key: toolName,
+    const steps = pickDemoSequence(text).map((toolName, index) => ({
+      key: `${toolName}-${index}`,
       label: AGENT_TOOL_LABELS[toolName] || toolName,
+      toolName,
       status: "pending" as const,
     }));
-    setThinkingSteps(steps);
-    setAgentStatus("Simulated agent reasoning");
+    setThinkingSteps(steps.map(({ key, label, status }) => ({ key, label, status })));
+    setAgentStatus("Simulated agent tool loop");
     setIsThinking(true);
 
-    const duration = text.length < 24 ? 220 : 320;
     for (const step of steps) {
-      setActiveToolStep(step.key);
-      await sleep(duration);
-      finalizeToolStep(step.key, "done");
+      const isAction = ACTION_TOOLS.has(step.toolName);
+      setAgentStatus(isAction ? "Preparing flight action" : "Analyzing with tools");
+      await sleep(isAction ? DEMO_ACTION_DELAY_MS : DEMO_STEP_DELAY_MS);
+      setThinkingSteps((prev) =>
+        prev.map((item) => ({
+          ...item,
+          status: item.key === step.key ? "active" : item.status === "active" ? "done" : item.status,
+        }))
+      );
+      await sleep(isAction ? Math.max(420, Math.floor(DEMO_ACTION_DELAY_MS * 0.6)) : Math.max(260, Math.floor(DEMO_STEP_DELAY_MS * 0.45)));
+      setThinkingSteps((prev) => prev.map((item) => (item.key === step.key ? { ...item, status: "done" } : item)));
     }
 
-    await sleep(140);
+    await sleep(220);
     setIsThinking(false);
     setAgentStatus("");
-  }, [finalizeToolStep, setActiveToolStep]);
+  }, []);
 
   const runRealAgentThinking = useCallback(async (text: string): Promise<string> => {
     setThinkingSteps([]);
@@ -693,12 +744,18 @@ export default function ControlPanel() {
         }
 
         if (event.type === "tool_call" && event.toolName) {
-          setActiveToolStep(event.toolName);
+          if (event.status === "queued") {
+            setQueuedToolStep(event.toolName);
+          } else if (event.status === "running") {
+            setActiveToolStep(event.toolName);
+          } else {
+            setActiveToolStep(event.toolName);
+          }
           continue;
         }
 
         if (event.type === "tool_result" && event.toolName) {
-          finalizeToolStep(event.toolName, "done");
+          finalizeToolStep(event.toolName, event.result?.ok === false ? "error" : "done");
           continue;
         }
 
@@ -725,7 +782,7 @@ export default function ControlPanel() {
     setIsThinking(false);
     setAgentStatus("");
     return finalMessage;
-  }, [finalizeToolStep, setActiveToolStep]);
+  }, [finalizeToolStep, setActiveToolStep, setQueuedToolStep]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -873,37 +930,40 @@ export default function ControlPanel() {
             <div className="absolute top-3 right-3 w-6 h-6 border-t border-r border-[#3B4658]" />
             <div className="absolute bottom-10 left-3 w-6 h-6 border-b border-l border-[#3B4658]" />
             <div className="absolute bottom-10 right-3 w-6 h-6 border-b border-r border-[#3B4658]" />
-            {/* Detection overlays */}
-            <div className="absolute top-[30%] left-[25%] w-20 h-28 border border-[#CDFF00]/60 border-dashed">
-              <div className="absolute -top-5 left-0 text-[11px] font-mono text-[#CDFF00] bg-[#CDFF00]/10 px-1.5 py-0.5 whitespace-nowrap">
-                PERSON 94%
-              </div>
-            </div>
-            <div className="absolute top-[40%] right-[20%] w-16 h-12 border border-[#F59E0B]/40 border-dashed">
-              <div className="absolute -top-5 left-0 text-[11px] font-mono text-[#F59E0B] bg-[#F59E0B]/10 px-1.5 py-0.5 whitespace-nowrap">
-                VEHICLE 87%
-              </div>
-            </div>
             {/* Background video */}
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              loop={!videoConfig.isRealFeedActive}
-              playsInline
-              crossOrigin="anonymous"
-              onLoadedData={() => {
-                setStreamError(null);
-                setVideoStatus(videoConfig.isRealFeedActive ? "Live stream connected" : "Demo feed loaded");
-              }}
-              onError={() => {
-                setStreamError("Unable to load video stream. Check your stream URL and CORS settings.");
-                setVideoStatus("Stream connection failed");
-              }}
-              className="absolute inset-0 w-full h-full object-cover opacity-25"
-            >
-              <source src={videoConfig.sourceUrl} />
-            </video>
+            {isYouTubeEmbed ? (
+              <iframe
+                src={videoConfig.youtubeEmbedUrl!}
+                title="Drone YouTube live stream"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full border-0 opacity-60"
+                onLoad={() => {
+                  setStreamError(null);
+                  setVideoStatus("YouTube live stream connected");
+                }}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                loop={!videoConfig.isRealFeedActive}
+                playsInline
+                crossOrigin="anonymous"
+                onLoadedData={() => {
+                  setStreamError(null);
+                  setVideoStatus(videoConfig.isRealFeedActive ? "Live stream connected" : "Demo feed loaded");
+                }}
+                onError={() => {
+                  setStreamError("Unable to load video stream. Check your stream URL and CORS settings.");
+                  setVideoStatus("Stream connection failed");
+                }}
+                className="absolute inset-0 w-full h-full object-cover opacity-25"
+              >
+                <source src={videoConfig.sourceUrl} />
+              </video>
+            )}
             {/* HUD bar */}
             <div className="absolute bottom-0 left-0 right-0 bg-[#0F141D]/95 border-t border-[#2B3342] px-3 py-2 flex items-center gap-5">
               <span className="text-[12px] font-mono text-[#A3ADBC]">ALT 45.2m</span>
@@ -911,7 +971,7 @@ export default function ControlPanel() {
               <span className="text-[12px] font-mono text-[#A3ADBC]">GPS {gpsHud}</span>
               <span className="text-[12px] font-mono text-[#CDFF00] ml-auto">AI: ACTIVE</span>
               <span className="text-[12px] font-mono text-[#A3ADBC]">
-                FEED {videoConfig.isRealFeedActive ? "REAL" : "DEMO"}
+                FEED {videoConfig.isRealFeedActive ? (isYouTubeEmbed ? "REAL-YT" : "REAL") : "DEMO"}
               </span>
               <span className="text-[12px] font-mono text-[#F87171] flex items-center gap-1">
                 <span className="w-1 h-1 bg-red-500" />
