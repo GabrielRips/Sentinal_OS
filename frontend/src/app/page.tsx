@@ -482,10 +482,6 @@ function StatsTile() {
           <p className="text-3xl font-mono text-[#CDFF00] tracking-tight leading-none crt-glow">{area}<span className="text-lg"> km&sup2;</span></p>
           <p className="text-[9px] font-mono text-[#888] tracking-wider uppercase mt-1">Area Scanned</p>
         </div>
-        <div>
-          <p className="text-3xl font-mono text-[#EDEDED] tracking-tight leading-none">&lt;2<span className="text-lg">s</span></p>
-          <p className="text-[9px] font-mono text-[#888] tracking-wider uppercase mt-1">Response Time</p>
-        </div>
       </div>
     </div>
   );
