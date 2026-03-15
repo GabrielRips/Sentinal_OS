@@ -915,7 +915,7 @@ function DetectionDemo() {
         <div className={`relative w-full aspect-video bg-[#050505] border overflow-hidden transition-all duration-500 ${alertFlash ? "border-red-500/60 shadow-[0_0_60px_rgba(239,68,68,0.15)]" : isDanger ? "border-red-500/30" : "border-[#1A1A1A]"}`}>
           {/* Video */}
           <video ref={videoRef} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-70">
-            <source src="/forest-fire-web.mp4" type="video/mp4" />
+            <source src="/forest-fire-web-hq.mp4" type="video/mp4" />
           </video>
 
           {/* Darken overlay */}
