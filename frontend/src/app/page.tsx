@@ -5,6 +5,75 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import FadeIn from "@/components/FadeIn";
 
 /* ════════════════════════════════════════════
+   GLITCH TEXT
+   ════════════════════════════════════════════ */
+
+const glitchChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*<>{}[]=/\\|";
+
+function GlitchText({
+  text,
+  className,
+  style,
+  intervalMs = 3000,
+  scrambleDurationMs = 800,
+}: {
+  text: string;
+  className?: string;
+  style?: React.CSSProperties;
+  intervalMs?: number;
+  scrambleDurationMs?: number;
+}) {
+  const [display, setDisplay] = useState(text);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const scramble = () => {
+      const startTime = performance.now();
+      const chars = text.split("");
+
+      const tick = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / scrambleDurationMs, 1);
+        // Characters resolve left to right as progress increases
+        const resolvedCount = Math.floor(progress * chars.length);
+
+        const result = chars.map((ch, i) => {
+          if (ch === " " || ch === "\n") return ch;
+          if (i < resolvedCount) return ch;
+          return glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        });
+
+        setDisplay(result.join(""));
+
+        if (progress < 1) {
+          frameRef.current = requestAnimationFrame(tick);
+        } else {
+          setDisplay(text);
+          timeout = setTimeout(scramble, intervalMs);
+        }
+      };
+
+      frameRef.current = requestAnimationFrame(tick);
+    };
+
+    timeout = setTimeout(scramble, intervalMs);
+
+    return () => {
+      clearTimeout(timeout);
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [text, intervalMs, scrambleDurationMs]);
+
+  return (
+    <span className={className} style={style}>
+      {display}
+    </span>
+  );
+}
+
+/* ════════════════════════════════════════════
    BOOT SEQUENCE
    ════════════════════════════════════════════ */
 
@@ -1122,8 +1191,8 @@ export default function Home() {
                 Autonomous Drone Intelligence
               </div>
               <h1 className="text-[clamp(3rem,8vw,7rem)] font-semibold tracking-[-0.03em] leading-[0.9] text-white" style={{ animation: "clip-reveal-left 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both" }}>
-                Sentinel
-                <br /><span className="text-[#CDFF00] crt-glow" style={{ animation: "glow-in 1.2s ease-out 1.5s both" }}>OS</span>
+                <GlitchText text="Sentinel" intervalMs={4000} scrambleDurationMs={900} />
+                <br /><GlitchText text="OS" className="text-[#CDFF00] crt-glow" style={{ animation: "glow-in 1.2s ease-out 1.5s both" }} intervalMs={4000} scrambleDurationMs={900} />
               </h1>
               <div className="mt-8 h-px bg-gradient-to-r from-[#CDFF00]/50 via-[#CDFF00]/25 to-transparent max-w-md" style={{ animation: "line-grow 0.8s ease-out 1.8s both", transformOrigin: "left" }} />
               <p className="mt-6 text-base sm:text-lg text-[#BBB] max-w-lg leading-relaxed" style={{ animation: "fade-in-up 0.8s ease-out 2s both" }}>
