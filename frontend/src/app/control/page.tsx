@@ -635,10 +635,28 @@ export default function ControlPanel() {
     if (!analyzeQuery.trim() || isAnalyzing) return;
     setIsAnalyzing(true);
     setShowAnalyzeModal(false);
-    setVideoStatus("Analyzing footage...");
+    setVideoStatus("Uploading & indexing footage...");
 
     const id = ++idRef.current;
-    setMessages((prev) => [...prev, { id, role: "user", text: `[ANALYZE] ${analyzeQuery}`, displayText: `[ANALYZE] ${analyzeQuery}` }]);
+    setMessages((prev) => [...prev, { id, role: "user", text: `${analyzeMode === "search" ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}`, displayText: `${analyzeMode === "search" ? "SEARCH" : "ANALYZE"}: ${analyzeQuery}` }]);
+
+    // Show thinking steps for analysis
+    const analyzeSteps = [
+      { key: "upload", label: "Uploading footage to AI engine", status: "active" as const },
+      { key: "index", label: "Indexing video frames", status: "pending" as const },
+      { key: "process", label: analyzeMode === "search" ? "Searching for matches" : "Running deep analysis", status: "pending" as const },
+      { key: "compile", label: "Compiling results", status: "pending" as const },
+    ];
+    setThinkingSteps(analyzeSteps);
+    setAgentStatus("Twelve Labs AI Analysis");
+    setIsThinking(true);
+
+    // Animate steps while waiting
+    const stepTimers = [
+      setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "upload" ? { ...s, status: "done" as const } : s.key === "index" ? { ...s, status: "active" as const } : s)), 3000),
+      setTimeout(() => setThinkingSteps(prev => prev.map(s => s.key === "index" ? { ...s, status: "done" as const } : s.key === "process" ? { ...s, status: "active" as const } : s)), 8000),
+      setTimeout(() => setVideoStatus("Processing with Twelve Labs AI..."), 5000),
+    ];
 
     try {
       const res = await fetch("/api/analyze", {
@@ -653,38 +671,52 @@ export default function ControlPanel() {
         throw new Error(json.error || "Analysis failed");
       }
 
+      // Finish all steps
+      setThinkingSteps(prev => prev.map(s => ({ ...s, status: "done" as const })));
+      await new Promise(r => setTimeout(r, 400));
+
       let responseText = "";
       if (json.type === "search" && Array.isArray(json.results)) {
         if (json.results.length === 0) {
-          responseText = `Analysis complete. No matches found for "${analyzeQuery}" in the footage.`;
+          responseText = `[SCAN COMPLETE] No matches found for "${analyzeQuery}" in the analyzed footage. Try broadening your search terms.`;
         } else {
-          const matches = json.results.map((r: { start: number; end: number; score: number; confidence: string }, i: number) =>
-            `${i + 1}. ${r.start.toFixed(1)}s - ${r.end.toFixed(1)}s (${(r.score * 100).toFixed(0)}% confidence: ${r.confidence})`
-          ).join("\n");
-          responseText = `Found ${json.results.length} match(es) for "${analyzeQuery}":\n${matches}`;
+          const header = `[SCAN COMPLETE] ${json.results.length} match(es) detected for "${analyzeQuery}"\n\n`;
+          const matches = json.results.map((r: { start: number; end: number; score: number; confidence: string }, i: number) => {
+            const bar = "█".repeat(Math.round((r.score || 0) * 10));
+            return `  TARGET ${i + 1}  │  ${r.start.toFixed(1)}s → ${r.end.toFixed(1)}s  │  ${bar} ${(r.score * 100).toFixed(0)}%  │  ${r.confidence}`;
+          }).join("\n");
+          responseText = header + matches;
         }
       } else {
-        responseText = json.data || "Analysis complete. No additional details returned.";
+        responseText = `[ANALYSIS COMPLETE]\n\n${json.data || "No additional details returned."}`;
       }
+
+      setIsThinking(false);
+      setAgentStatus("");
 
       const aiId = ++idRef.current;
       setMessages((prev) => [...prev, { id: aiId, role: "ai", text: responseText, displayText: "" }]);
       let i = 0;
       const iv = setInterval(() => {
-        i = Math.min(i + 2, responseText.length);
+        i = Math.min(i + 3, responseText.length);
         setMessages((prev) =>
           prev.map((m) => (m.id === aiId ? { ...m, displayText: responseText.slice(0, i) } : m))
         );
         if (i >= responseText.length) clearInterval(iv);
-      }, 18);
+      }, 14);
 
-      setVideoStatus("Analysis complete");
+      setVideoStatus("Analysis complete — results in chat");
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "Analysis failed";
+      setThinkingSteps(prev => prev.map(s => s.status !== "done" ? { ...s, status: "error" as const } : s));
+      await new Promise(r => setTimeout(r, 500));
+      setIsThinking(false);
+      setAgentStatus("");
       const aiId = ++idRef.current;
-      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `Analysis error: ${errMsg}`, displayText: `Analysis error: ${errMsg}` }]);
+      setMessages((prev) => [...prev, { id: aiId, role: "ai", text: `[ERROR] Analysis failed: ${errMsg}`, displayText: `[ERROR] Analysis failed: ${errMsg}` }]);
       setVideoStatus("Analysis failed");
     } finally {
+      stepTimers.forEach(clearTimeout);
       setIsAnalyzing(false);
       setAnalyzeQuery("");
     }
@@ -1356,79 +1388,106 @@ export default function ControlPanel() {
 
       {/* Analyze Modal */}
       {showAnalyzeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-[420px] border border-[#2B3342] bg-[#141A24] shadow-2xl">
-            <div className="px-5 py-4 border-b border-[#2B3342] flex items-center justify-between">
-              <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">
-                Video Analysis
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md" onClick={() => setShowAnalyzeModal(false)}>
+          <div className="w-[460px] border border-[#3B82F6]/30 bg-[#111722] shadow-[0_0_60px_rgba(59,130,246,0.1)]" onClick={e => e.stopPropagation()}>
+            {/* Header with glow accent */}
+            <div className="px-5 py-4 border-b border-[#2B3342] bg-gradient-to-r from-[#3B82F6]/5 to-transparent flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-[#3B82F6] animate-pulse" />
+                <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">
+                  AI Video Analysis
+                </h3>
+              </div>
               <button
                 onClick={() => setShowAnalyzeModal(false)}
-                className="text-[#A3ADBC] hover:text-[#F4F7FC] text-lg leading-none"
+                className="text-[#A3ADBC] hover:text-[#F4F7FC] text-lg leading-none w-6 h-6 flex items-center justify-center hover:bg-[#2B3342] transition-colors"
               >
                 &times;
               </button>
             </div>
 
             <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-[12px] font-mono text-[#A3ADBC] tracking-wider mb-2">
-                  WHAT DO YOU WANT TO FIND / ANALYZE?
-                </label>
-                <input
-                  type="text"
-                  value={analyzeQuery}
-                  onChange={(e) => setAnalyzeQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                  placeholder="e.g. Find people, detect fire, describe the scene..."
-                  autoFocus
-                  className="w-full bg-[#0F141D] border border-[#2B3342] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#8B96A8] focus:outline-none focus:border-[#4D5C74]"
-                />
-              </div>
-
-              <div className="flex gap-2">
+              {/* Mode toggle */}
+              <div className="flex gap-0 border border-[#2B3342] bg-[#0F141D]">
                 <button
                   onClick={() => setAnalyzeMode("analyze")}
-                  className={`flex-1 py-2 text-[12px] font-mono tracking-wider border transition-colors ${
+                  className={`flex-1 py-2.5 text-[12px] font-mono tracking-wider transition-all ${
                     analyzeMode === "analyze"
-                      ? "border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]"
-                      : "border-[#2B3342] text-[#A3ADBC] hover:text-[#CFD6E3]"
+                      ? "bg-[#3B82F6] text-white"
+                      : "text-[#A3ADBC] hover:text-[#CFD6E3] hover:bg-[#1A2231]"
                   }`}
                 >
                   ANALYZE
                 </button>
                 <button
                   onClick={() => setAnalyzeMode("search")}
-                  className={`flex-1 py-2 text-[12px] font-mono tracking-wider border transition-colors ${
+                  className={`flex-1 py-2.5 text-[12px] font-mono tracking-wider transition-all ${
                     analyzeMode === "search"
-                      ? "border-[#CDFF00] bg-[#CDFF00]/10 text-[#CDFF00]"
-                      : "border-[#2B3342] text-[#A3ADBC] hover:text-[#CFD6E3]"
+                      ? "bg-[#CDFF00] text-[#0A0A0A]"
+                      : "text-[#A3ADBC] hover:text-[#CFD6E3] hover:bg-[#1A2231]"
                   }`}
                 >
                   SEARCH
                 </button>
               </div>
 
-              <p className="text-[11px] font-mono text-[#8B96A8]">
+              {/* Input */}
+              <div>
+                <label className="block text-[11px] font-mono text-[#8B96A8] tracking-wider mb-2">
+                  {analyzeMode === "analyze" ? "DESCRIBE WHAT TO ANALYZE" : "WHAT ARE YOU LOOKING FOR?"}
+                </label>
+                <input
+                  type="text"
+                  value={analyzeQuery}
+                  onChange={(e) => setAnalyzeQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
+                  placeholder={analyzeMode === "analyze" ? "e.g. Describe all activity in the footage..." : "e.g. people, vehicles, fire..."}
+                  autoFocus
+                  className="w-full bg-[#0A0E14] border border-[#2B3342] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#5A6578] focus:outline-none focus:border-[#3B82F6] transition-colors"
+                />
+              </div>
+
+              {/* Quick suggestions */}
+              <div>
+                <p className="text-[10px] font-mono text-[#5A6578] tracking-wider mb-2">QUICK SELECT</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(analyzeMode === "search"
+                    ? ["people", "vehicles", "fire", "buildings", "animals"]
+                    : ["Describe all activity", "Count all objects", "Identify hazards", "Summarize the scene"]
+                  ).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setAnalyzeQuery(s)}
+                      className={`px-2.5 py-1 text-[11px] font-mono border transition-colors ${
+                        analyzeQuery === s
+                          ? "border-[#3B82F6] bg-[#3B82F6]/10 text-[#3B82F6]"
+                          : "border-[#2B3342] text-[#8B96A8] hover:text-[#CFD6E3] hover:border-[#4D5C74]"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] font-mono text-[#5A6578] leading-relaxed">
                 {analyzeMode === "analyze"
-                  ? "Analyze will describe and interpret the footage using AI."
-                  : "Search will find specific moments matching your query."}
+                  ? "Powered by Twelve Labs Pegasus — AI will interpret and describe the footage."
+                  : "Powered by Twelve Labs Marengo — finds specific moments matching your query."}
               </p>
             </div>
 
-            <div className="px-5 py-4 border-t border-[#2B3342] flex justify-end gap-2">
-              <button
-                onClick={() => setShowAnalyzeModal(false)}
-                className="px-4 py-2 text-[13px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] tracking-wider"
-              >
-                CANCEL
-              </button>
+            <div className="px-5 py-4 border-t border-[#2B3342] bg-[#0F141D]/50">
               <button
                 onClick={handleAnalyze}
                 disabled={!analyzeQuery.trim()}
-                className="px-5 py-2 text-[13px] font-mono bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors tracking-wider disabled:opacity-40"
+                className={`w-full py-3 text-[13px] font-mono font-semibold tracking-[0.15em] transition-all disabled:opacity-30 ${
+                  analyzeMode === "search"
+                    ? "bg-[#CDFF00] text-[#0A0A0A] hover:bg-[#d8ff33]"
+                    : "bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white hover:from-[#2563EB] hover:to-[#1D4ED8]"
+                }`}
               >
-                RUN ANALYSIS
+                {analyzeMode === "search" ? "SEARCH FOOTAGE" : "RUN ANALYSIS"}
               </button>
             </div>
           </div>
