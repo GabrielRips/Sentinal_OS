@@ -1163,6 +1163,8 @@ export default function ControlPanel() {
             <div className="px-4 py-3 border-b border-[#364258] bg-[#151D2A] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">Command Center</h3>
+                <span className="w-1.5 h-1.5 bg-[#F59E0B] rounded-full" style={{ animation: "processing-pulse 2s ease-in-out infinite" }} />
+                <span className="text-[10px] font-mono text-[#F59E0B] tracking-wider">OFFLINE</span>
                 {isSpeaking && (
                   <div className="flex items-center gap-1.5">
                     <WaveformBars active bars={5} color="#B6C2D5" />
