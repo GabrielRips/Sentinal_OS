@@ -978,20 +978,20 @@ export default function ControlPanel() {
   return (
     <div className="fixed left-0 right-0 top-14 bottom-0 bg-[#0F141D] flex flex-col overflow-hidden">
       {/* Sub-header */}
-      <div className="border-b border-[#2B3342] bg-[#141A24] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="border-b border-[#364258] bg-[#141A24] px-4 lg:px-6 py-3 flex items-center justify-between shrink-0">
         <h1 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#F4F7FC]">SkySearch Control</h1>
         <div className="flex items-center gap-3">
           {/* Mobile tab switcher */}
-          <div className="flex lg:hidden border border-[#2B3342] bg-[#111722] p-0.5 gap-0.5 rounded-sm">
+          <div className="flex lg:hidden border border-[#364258] bg-[#111722] p-0.5 gap-0.5 rounded-sm">
             <button
               onClick={() => setMobileTab("control")}
-              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "control" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#A3ADBC] hover:text-[#CFD6E3]"}`}
+              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "control" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#B6C2D5] hover:text-[#E8EDFB]"}`}
             >
               CONTROL
             </button>
             <button
               onClick={() => setMobileTab("status")}
-              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "status" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#A3ADBC] hover:text-[#CFD6E3]"}`}
+              className={`px-3 py-2 text-[13px] font-mono tracking-wider transition-all ${mobileTab === "status" ? "bg-[#2D384A] text-[#F4F7FC]" : "text-[#B6C2D5] hover:text-[#E8EDFB]"}`}
             >
               STATUS
             </button>
@@ -999,14 +999,14 @@ export default function ControlPanel() {
           {isSpeaking && (
             <div className="hidden lg:flex items-center gap-2">
               <WaveformBars active bars={7} color="#B6C2D5" />
-              <span className="text-[12px] font-mono text-[#A3ADBC] tracking-wider">AI SPEAKING</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5] tracking-wider">AI SPEAKING</span>
             </div>
           )}
           <span className="w-1.5 h-1.5 bg-[#22C55E]" />
-          <span className="hidden sm:block text-[13px] text-[#A3ADBC] font-mono tracking-wider">
+          <span className="hidden sm:block text-[13px] text-[#B6C2D5] font-mono tracking-wider">
             DJI MAVIC 3 PRO
           </span>
-          <span className="hidden md:block text-[12px] text-[#8B96A8] font-mono tracking-wider uppercase">
+          <span className="hidden md:block text-[12px] text-[#B6C2D5] font-mono tracking-wider uppercase">
             AGENT {USE_REAL_AGENT_STREAM ? "REAL" : "DEMO"}
           </span>
         </div>
@@ -1014,10 +1014,10 @@ export default function ControlPanel() {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_320px] min-h-0">
         {/* LEFT COLUMN */}
-        <div className={`flex-col border-r border-[#2B3342] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
+        <div className={`flex-col border-r border-[#364258] overflow-hidden ${mobileTab === "control" ? "flex" : "hidden"} lg:flex`}>
 
           {/* Video Feed */}
-          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#2B3342] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
+          <div className="relative bg-[#131A26] m-2 lg:m-3 border border-[#364258] overflow-hidden shrink-0 h-[28%] lg:h-[42%]">
             <div
               className="absolute left-0 right-0 h-px bg-[#CDFF00]/15"
               style={{ top: `${scanY}%` }}
@@ -1062,12 +1062,12 @@ export default function ControlPanel() {
               </video>
             )}
             {/* HUD bar */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#0F141D]/95 border-t border-[#2B3342] px-3 py-2 flex items-center gap-5">
-              <span className="text-[12px] font-mono text-[#A3ADBC]">ALT 45.2m</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">SPD 12km/h</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">GPS {gpsHud}</span>
+            <div className="absolute bottom-0 left-0 right-0 bg-[#0F141D]/95 border-t border-[#364258] px-3 py-2 flex items-center gap-5">
+              <span className="text-[12px] font-mono text-[#B6C2D5]">ALT 45.2m</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5]">SPD 12km/h</span>
+              <span className="text-[12px] font-mono text-[#B6C2D5]">GPS {gpsHud}</span>
               <span className="text-[12px] font-mono text-[#CDFF00] ml-auto">AI: ACTIVE</span>
-              <span className="text-[12px] font-mono text-[#A3ADBC]">
+              <span className="text-[12px] font-mono text-[#B6C2D5]">
                 FEED {videoConfig.isRealFeedActive ? (isYouTubeEmbed ? "REAL-YT" : "REAL") : "DEMO"}
               </span>
               <span className="text-[12px] font-mono text-[#F87171] flex items-center gap-1">
@@ -1081,17 +1081,17 @@ export default function ControlPanel() {
           <div className="px-2 lg:px-3 pb-1 lg:pb-2 flex gap-1.5 shrink-0">
             <button
               onClick={handleRecordToggle}
-              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#F87171] hover:bg-[#1A2231] transition-colors tracking-wider"
+              className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#F87171] hover:bg-[#1A2231] transition-colors tracking-wider"
             >
               {isRecording ? "STOP" : "REC"}
             </button>
             <button
               onClick={handleCapture}
-              className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CFD6E3] hover:bg-[#1A2231] transition-colors tracking-wider"
+              className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#E8EDFB] hover:bg-[#1A2231] transition-colors tracking-wider"
             >
               CAPTURE
             </button>
-            <button className="border border-[#2B3342] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
+            <button className="border border-[#364258] bg-[#141A24] px-3 py-2 text-[13px] font-mono text-[#CDFF00] hover:bg-[#1A2231] transition-colors tracking-wider">
               AI: ON
             </button>
           </div>
@@ -1101,16 +1101,16 @@ export default function ControlPanel() {
           </div>
 
           {/* LLM Chat */}
-          <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#2B3342] bg-[#111722] overflow-hidden min-h-0">
+          <div className="flex-1 flex flex-col m-2 mt-1 lg:m-3 lg:mt-1 border border-[#364258] bg-[#111722] overflow-hidden min-h-0">
 
             {/* Chat header */}
-            <div className="px-4 py-3 border-b border-[#2B3342] bg-[#151D2A] flex items-center justify-between shrink-0">
+            <div className="px-4 py-3 border-b border-[#364258] bg-[#151D2A] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <h3 className="text-[13px] font-semibold tracking-[0.15em] uppercase text-[#F4F7FC]">Command Center</h3>
                 {isSpeaking && (
                   <div className="flex items-center gap-1.5">
                     <WaveformBars active bars={5} color="#B6C2D5" />
-                    <span className="text-[11px] font-mono text-[#A3ADBC] tracking-wider">SPEAKING</span>
+                    <span className="text-[11px] font-mono text-[#B6C2D5] tracking-wider">SPEAKING</span>
                   </div>
                 )}
               </div>
@@ -1121,7 +1121,7 @@ export default function ControlPanel() {
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-mono tracking-wider transition-all ${
                   voiceEnabled
                     ? "bg-[#2D384A] text-[#F4F7FC]"
-                    : "text-[#A3ADBC] hover:text-[#CFD6E3]"
+                    : "text-[#B6C2D5] hover:text-[#E8EDFB]"
                 }`}
               >
                 VOICE {voiceEnabled ? "ON" : "OFF"}
@@ -1142,20 +1142,20 @@ export default function ControlPanel() {
                         : isAnalysisQuery
                           ? "border-[#3B82F6]/30 bg-[#111B2E] border-l-2 border-l-[#3B82F6]/60 ml-auto"
                           : msg.role === "ai"
-                            ? "border-[#2B3342] bg-[#151D2A] border-l-2 border-l-[#3F4C62] mr-auto"
-                            : "border-[#2B3342] bg-[#151D2A] border-l-2 border-l-[#7B879A] ml-auto"
+                            ? "border-[#364258] bg-[#151D2A] border-l-2 border-l-[#3F4C62] mr-auto"
+                            : "border-[#364258] bg-[#151D2A] border-l-2 border-l-[#7B879A] ml-auto"
                     }`}
                     style={isAnalysisResult ? { animation: "detection-appear 0.4s ease-out" } : undefined}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <p className={`text-[12px] font-mono tracking-wider ${isAnalysisResult ? "text-[#3B82F6]" : isAnalysisQuery ? "text-[#3B82F6]/80" : "text-[#A3ADBC]"}`}>
+                      <p className={`text-[12px] font-mono tracking-wider ${isAnalysisResult ? "text-[#3B82F6]" : isAnalysisQuery ? "text-[#3B82F6]/80" : "text-[#B6C2D5]"}`}>
                         {isAnalysisResult ? "SENTINEL AI — ANALYSIS" : isAnalysisQuery ? "OPERATOR — QUERY" : msg.role === "ai" ? "SKYSEARCH AI" : "OPERATOR"}
                       </p>
                       {msg.role === "ai" && speakingId === msg.id && (
                         <WaveformBars active bars={4} color="#B6C2D5" />
                       )}
                     </div>
-                    <pre className={`text-[13px] leading-relaxed whitespace-pre-wrap font-mono ${isAnalysisResult ? "text-[#D7E0ED]" : "text-[#CFD6E3]"}`}>
+                    <pre className={`text-[13px] leading-relaxed whitespace-pre-wrap font-mono ${isAnalysisResult ? "text-[#D7E0ED]" : "text-[#E8EDFB]"}`}>
                       {msg.displayText}
                       {msg.role === "ai" && msg.displayText.length < msg.text.length && (
                         <span className="inline-block w-0.5 h-3 bg-[#3B82F6] ml-0.5 align-middle animate-pulse" />
@@ -1166,7 +1166,7 @@ export default function ControlPanel() {
               })}
 
               {isThinking && (
-                <div className="border border-[#2B3342] bg-gradient-to-b from-[#131A26] to-[#151D2A] border-l-2 border-l-[#3B82F6] p-4 max-w-[90%] mr-auto relative overflow-hidden" style={{ animation: "detection-appear 0.3s ease-out" }}>
+                <div className="border border-[#364258] bg-gradient-to-b from-[#131A26] to-[#151D2A] border-l-2 border-l-[#3B82F6] p-4 max-w-[90%] mr-auto relative overflow-hidden" style={{ animation: "detection-appear 0.3s ease-out" }}>
                   {/* Scan line effect */}
                   <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#3B82F6]/20 to-transparent" style={{ animation: "analyze-scan 2s linear infinite" }} />
                   <div className="flex items-center gap-2 mb-3">
@@ -1195,22 +1195,22 @@ export default function ControlPanel() {
                                 ? "bg-[#F87171] shadow-[0_0_6px_rgba(248,113,113,0.5)]"
                                 : step.status === "active"
                                   ? "bg-[#3B82F6] shadow-[0_0_8px_rgba(59,130,246,0.6)]"
-                                  : "bg-[#2B3342]"
+                                  : "bg-[#364258]"
                           }`}
                           style={step.status === "active" ? { animation: "processing-pulse 0.6s ease-in-out infinite" } : undefined}
                         />
-                        <span className="text-[#5A6578] font-mono text-[11px]">
+                        <span className="text-[#8B96A8] font-mono text-[11px]">
                           {String(idx + 1).padStart(2, "0")}
                         </span>
                         <span
                           className={`font-mono text-[12px] ${
                             step.status === "done"
-                              ? "text-[#A3ADBC]"
+                              ? "text-[#B6C2D5]"
                               : step.status === "error"
                                 ? "text-[#FCA5A5]"
                                 : step.status === "active"
                                   ? "text-[#E8EDFB]"
-                                  : "text-[#5A6578]"
+                                  : "text-[#8B96A8]"
                           }`}
                           style={step.status === "active" ? { textShadow: "0 0 8px rgba(59,130,246,0.2)" } : undefined}
                         >
@@ -1228,18 +1228,18 @@ export default function ControlPanel() {
             </div>
 
             {/* Input area */}
-            <div className="p-3 border-t border-[#2B3342] bg-[#141B28] shrink-0">
+            <div className="p-3 border-t border-[#364258] bg-[#141B28] shrink-0">
 
               {(isListening || transcript) && (
-                <div className="mb-2 px-3 py-2 border border-[#2B3342] bg-[#172031] flex items-center gap-2.5">
+                <div className="mb-2 px-3 py-2 border border-[#364258] bg-[#172031] flex items-center gap-2.5">
                   <WaveformBars active={isListening} bars={6} color="#B6C2D5" />
-                  <span className="text-[13px] text-[#CFD6E3] font-mono flex-1 truncate">
+                  <span className="text-[13px] text-[#E8EDFB] font-mono flex-1 truncate">
                     {isListening && !transcript ? "Listening…" : transcript || "Processing…"}
                   </span>
                   {isListening && (
                     <button
                       onClick={stopListening}
-                      className="text-[11px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] transition-colors tracking-wider"
+                      className="text-[11px] font-mono text-[#B6C2D5] hover:text-[#F4F7FC] transition-colors tracking-wider"
                     >
                       STOP
                     </button>
@@ -1255,7 +1255,7 @@ export default function ControlPanel() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                   placeholder="Type a command…"
-                  className="flex-1 bg-[#0F141D] border border-[#2B3342] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#8B96A8] focus:outline-none focus:border-[#4D5C74] disabled:opacity-60"
+                  className="flex-1 bg-[#0F141D] border border-[#364258] px-4 py-3 text-sm text-[#F4F7FC] placeholder:text-[#B6C2D5] focus:outline-none focus:border-[#4D5C74] disabled:opacity-60"
                 />
 
                 <button
@@ -1295,7 +1295,7 @@ export default function ControlPanel() {
                     key={cmd}
                     onClick={() => sendMessage(cmd)}
                     disabled={isAgentRunning}
-                    className="border border-[#2B3342] bg-[#141B28] px-3 py-2 text-[13px] font-mono text-[#A3ADBC] hover:text-[#F4F7FC] hover:border-[#4D5C74] transition-colors whitespace-nowrap shrink-0 tracking-wider disabled:opacity-50"
+                    className="border border-[#364258] bg-[#141B28] px-3 py-2 text-[13px] font-mono text-[#B6C2D5] hover:text-[#F4F7FC] hover:border-[#4D5C74] transition-colors whitespace-nowrap shrink-0 tracking-wider disabled:opacity-50"
                   >
                     {cmd}
                   </button>
@@ -1332,16 +1332,16 @@ export default function ControlPanel() {
 
           {/* Telemetry */}
           <div className="p-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               Telemetry
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-4">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-4">
               <div>
                 <div className="flex justify-between text-[13px] mb-1.5">
-                  <span className="text-[#A3ADBC] font-mono">BATTERY</span>
+                  <span className="text-[#B6C2D5] font-mono">BATTERY</span>
                   <span className="font-mono text-[#EDEDED]">78%</span>
                 </div>
-                <div className="w-full h-1.5 bg-[#2B3342]">
+                <div className="w-full h-1.5 bg-[#364258]">
                   <div className="h-full w-[78%] bg-[#22C55E]" />
                 </div>
               </div>
@@ -1354,7 +1354,7 @@ export default function ControlPanel() {
                 { label: "FLIGHT TIME", value: "00:14:32" },
               ].map((item) => (
                 <div key={item.label} className="flex justify-between text-[13px]">
-                  <span className="text-[#A3ADBC] font-mono">{item.label}</span>
+                  <span className="text-[#B6C2D5] font-mono">{item.label}</span>
                   <span className="font-mono text-[#EDEDED]">{item.value}</span>
                 </div>
               ))}
@@ -1363,10 +1363,10 @@ export default function ControlPanel() {
 
           {/* GPS Map */}
           <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               GPS Tracker
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] overflow-hidden">
+            <div className="border border-[#364258] bg-[#131A26] overflow-hidden">
               <div className="h-[220px] bg-[#0F141D]">
                 <LiveGpsMap
                   currentPosition={currentPosition}
@@ -1374,16 +1374,16 @@ export default function ControlPanel() {
                   flightPath={flightPath}
                 />
               </div>
-              <div className="px-3 py-2 border-t border-[#2B3342] bg-[#151D2A] flex items-center justify-between">
-                <span className="text-[11px] font-mono text-[#A3ADBC] tracking-wider">{locationStatus}</span>
-                <span className="text-[11px] font-mono text-[#CFD6E3]">
+              <div className="px-3 py-2 border-t border-[#364258] bg-[#151D2A] flex items-center justify-between">
+                <span className="text-[11px] font-mono text-[#B6C2D5] tracking-wider">{locationStatus}</span>
+                <span className="text-[11px] font-mono text-[#E8EDFB]">
                   {currentPosition
                     ? `${formatCoordinate(currentPosition.lat, "N", "S")} ${formatCoordinate(currentPosition.lng, "E", "W")}`
                     : "Waiting for coordinates"}
                 </span>
               </div>
               {locationError && (
-                <div className="px-3 py-2 border-t border-[#2B3342] bg-[#131A26] text-[12px] font-mono text-[#F59E0B]">
+                <div className="px-3 py-2 border-t border-[#364258] bg-[#131A26] text-[12px] font-mono text-[#F59E0B]">
                   {locationError}
                 </div>
               )}
@@ -1392,10 +1392,10 @@ export default function ControlPanel() {
 
           {/* AI Status */}
           <div className="px-4 pb-4">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               AI Status
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-3">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
               {[
                 { label: "MODEL",            value: "Active",   accent: "#22C55E" },
                 { label: "FACES DB",         value: "12 loaded", accent: "#22C55E" },
@@ -1405,7 +1405,7 @@ export default function ControlPanel() {
                 <div key={item.label} className="flex items-center justify-between text-[13px]">
                   <div className="flex items-center gap-2">
                     <span className="w-1 h-1" style={{ backgroundColor: item.accent }} />
-                    <span className="text-[#A3ADBC] font-mono">{item.label}</span>
+                    <span className="text-[#B6C2D5] font-mono">{item.label}</span>
                   </div>
                   <span className="font-mono text-[#EDEDED]">{item.value}</span>
                 </div>
@@ -1415,15 +1415,15 @@ export default function ControlPanel() {
 
           {/* Notifications */}
           <div className="px-4 pb-4 flex-1">
-            <h3 className="text-[12px] font-semibold text-[#A3ADBC] uppercase tracking-[0.18em] mb-4">
+            <h3 className="text-[12px] font-semibold text-[#B6C2D5] uppercase tracking-[0.18em] mb-4">
               Events
             </h3>
-            <div className="border border-[#2B3342] bg-[#131A26] p-4 space-y-3">
+            <div className="border border-[#364258] bg-[#131A26] p-4 space-y-3">
               {notifications.map((n) => (
                 <div key={n.id} className="flex gap-3 text-[13px] leading-relaxed">
-                  <span className="font-mono text-[#8B96A8] shrink-0">{n.time}</span>
+                  <span className="font-mono text-[#B6C2D5] shrink-0">{n.time}</span>
                   <span className="w-1 h-1 mt-1.5 shrink-0" style={{ backgroundColor: n.accent }} />
-                  <span className="text-[#CFD6E3]">{n.text}</span>
+                  <span className="text-[#E8EDFB]">{n.text}</span>
                 </div>
               ))}
             </div>
@@ -1433,7 +1433,7 @@ export default function ControlPanel() {
 
       {/* Analyze Modal */}
       {showAnalyzeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md" onClick={() => setShowAnalyzeModal(false)}>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 backdrop-blur-md" onClick={() => setShowAnalyzeModal(false)}>
           <div
             className="w-[480px] border border-[#3B82F6]/20 bg-[#0D1117] shadow-[0_0_80px_rgba(59,130,246,0.12)] relative analyze-modal-scan"
             onClick={e => e.stopPropagation()}
@@ -1461,7 +1461,7 @@ export default function ControlPanel() {
                 <span className="text-[10px] font-mono text-[#3B82F6]/60 tracking-wider">SENTINEL AI</span>
                 <button
                   onClick={() => setShowAnalyzeModal(false)}
-                  className="text-[#5A6578] hover:text-[#F4F7FC] w-6 h-6 flex items-center justify-center hover:bg-[#1E2736] transition-colors text-sm"
+                  className="text-[#8B96A8] hover:text-[#F4F7FC] w-6 h-6 flex items-center justify-center hover:bg-[#1E2736] transition-colors text-sm"
                 >
                   &times;
                 </button>
@@ -1471,7 +1471,7 @@ export default function ControlPanel() {
             <div className="p-5 space-y-5">
               {/* Input */}
               <div>
-                <label className="block text-[10px] font-mono text-[#5A6578] tracking-[0.2em] mb-2.5 uppercase">
+                <label className="block text-[10px] font-mono text-[#8B96A8] tracking-[0.2em] mb-2.5 uppercase">
                   What do you want to analyze?
                 </label>
                 <div className="relative">
@@ -1482,10 +1482,10 @@ export default function ControlPanel() {
                     onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
                     placeholder="Describe all activity in the footage..."
                     autoFocus
-                    className="w-full bg-[#080B10] border border-[#1E2736] px-4 py-3.5 text-sm text-[#F4F7FC] placeholder:text-[#3A4454] focus:outline-none focus:border-[#3B82F6]/60 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all font-mono"
+                    className="w-full bg-[#080B10] border border-[#1E2736] px-4 py-3.5 text-sm text-[#F4F7FC] placeholder:text-[#6B7A8D] focus:outline-none focus:border-[#3B82F6]/60 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all font-mono"
                   />
                   {analyzeQuery && (
-                    <button onClick={() => setAnalyzeQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A6578] hover:text-[#A3ADBC] text-xs">
+                    <button onClick={() => setAnalyzeQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B96A8] hover:text-[#B6C2D5] text-xs">
                       &times;
                     </button>
                   )}
@@ -1494,7 +1494,7 @@ export default function ControlPanel() {
 
               {/* Quick suggestions */}
               <div>
-                <p className="text-[10px] font-mono text-[#3A4454] tracking-[0.2em] mb-2.5 uppercase">Quick select</p>
+                <p className="text-[10px] font-mono text-[#6B7A8D] tracking-[0.2em] mb-2.5 uppercase">Quick select</p>
                 <div className="flex flex-wrap gap-1.5">
                   {["Describe all visible activity", "Count and classify all objects", "Identify potential hazards", "Summarize the scene in detail", "Detect any unusual behavior"].map((s, idx) => (
                     <button
@@ -1504,7 +1504,7 @@ export default function ControlPanel() {
                       className={`px-3 py-1.5 text-[11px] font-mono border transition-all ${
                         analyzeQuery === s
                           ? "border-[#3B82F6]/40 bg-[#3B82F6]/8 text-[#3B82F6]"
-                          : "border-[#1E2736] text-[#5A6578] hover:text-[#A3ADBC] hover:border-[#2B3342] hover:bg-[#111722]"
+                          : "border-[#1E2736] text-[#8B96A8] hover:text-[#B6C2D5] hover:border-[#364258] hover:bg-[#111722]"
                       }`}
                     >
                       {s}
@@ -1515,7 +1515,7 @@ export default function ControlPanel() {
             </div>
 
             <div className="px-5 py-4 border-t border-[#1E2736] bg-[#080B10]/80 flex items-center justify-between">
-              <span className="text-[9px] font-mono text-[#3A4454] tracking-wider">
+              <span className="text-[9px] font-mono text-[#6B7A8D] tracking-wider">
                 SENTINEL VISION ENGINE
               </span>
               <button
