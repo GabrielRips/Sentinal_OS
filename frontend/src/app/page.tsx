@@ -135,13 +135,13 @@ function LiveClock() {
    ════════════════════════════════════════════ */
 
 const demoResponses: Record<string, string> = {
-  search: "Copy. Initiating grid search pattern over the designated area. Altitude set to 45m for optimal coverage. Thermal overlay active — scanning sector A-1. I'll alert you the moment I detect anything.",
+  search: "Copy. Initiating grid search pattern over the designated area. Altitude set to 45m for optimal coverage. Scanning sector A-1. I'll alert you the moment I detect anything.",
   find: "Activating facial recognition. Cross-referencing 12 loaded profiles against the live feed. Expanding search radius to 200m. Stay close — I'll call it out when I get a match.",
   photo: "High-resolution photo captured. Resolution: 5472×3648. Image saved and sent to your device. GPS coordinates tagged: 48.8512°N, 2.3508°E.",
   return: "Return to home confirmed. Plotting optimal path — distance 320m, ETA 45 seconds. Descending to 30m for obstacle clearance. Landing zone is clear.",
   hover: "Holding position. Altitude: 45.2m. Wind compensation active — 8 km/h NW. Stable hover confirmed. I'll stay right here until your next command.",
   land: "Landing sequence initiated. Scanning landing zone... clear. Descending at 1.5 m/s. Motors will cut at ground contact. Stand clear.",
-  scan: "Switching to expanded scan mode. Search radius increased to 500m. Activating both thermal and visual spectrum analysis. Estimated full-area coverage in 8 minutes.",
+  scan: "Switching to expanded scan mode. Search radius increased to 500m. Activating visual spectrum analysis. Estimated full-area coverage in 8 minutes.",
   sport: "Sports filming mode engaged. AI is tracking player movement and ball position. Camera set to cinematic mode at 4K 60fps. Auto-highlight detection is active.",
   hello: "SkySearch AI online and ready. All systems nominal. What's the mission?",
   help: "Available commands: search, find, photo, return home, hover, land, scan area, sport mode. You can also speak naturally — I understand context.",
@@ -351,7 +351,7 @@ function LiveFeedTile() {
 
 const chatScript = [
   { role: "user" as const, text: "Search the north field" },
-  { role: "ai" as const, text: "Copy. Grid search initiated — altitude 45m, thermal overlay active." },
+  { role: "ai" as const, text: "Copy. Grid search initiated — altitude 45m, scanning active." },
   { role: "user" as const, text: "Movement near the tree line" },
   { role: "ai" as const, text: "Confirmed — person detected, 91% match. GPS locked. Photo sent." },
 ];
@@ -600,6 +600,7 @@ function DetectionDemo() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [started, setStarted] = useState(false);
+  const [sequenceKey, setSequenceKey] = useState(0);
   const [phase, setPhase] = useState<ScanPhase>("idle");
   const [scanY, setScanY] = useState(0);
   const [typeText, setTypeText] = useState("");
@@ -611,7 +612,8 @@ function DetectionDemo() {
   const [infoLines, setInfoLines] = useState<string[]>([]);
   const [boxPos, setBoxPos] = useState({ x: 34.8, y: 46.7, w: 11.9, h: 28.6 });
   const [confidence, setConfidence] = useState(89);
-  const cycleRef = useRef<number>(0);
+  const previousVideoTimeRef = useRef(0);
+  const typeIntervalRef = useRef<number | null>(null);
 
   // Start on scroll
   useEffect(() => {
@@ -631,6 +633,36 @@ function DetectionDemo() {
     return () => clearInterval(iv);
   }, [started]);
 
+  useEffect(() => {
+    if (!started) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    previousVideoTimeRef.current = 0;
+    const resetVideo = () => {
+      video.currentTime = 0;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => undefined);
+      }
+    };
+
+    if (video.readyState >= 1) {
+      resetVideo();
+      return;
+    }
+
+    video.addEventListener("loadedmetadata", resetVideo, { once: true });
+    return () => video.removeEventListener("loadedmetadata", resetVideo);
+  }, [started]);
+
+  const clearTypeInterval = useCallback(() => {
+    if (typeIntervalRef.current !== null) {
+      window.clearInterval(typeIntervalRef.current);
+      typeIntervalRef.current = null;
+    }
+  }, []);
+
   // Sync detection box position to video time (always running)
   const showBoxRef = useRef(false);
   showBoxRef.current = showBox;
@@ -639,10 +671,21 @@ function DetectionDemo() {
     if (!started) return;
     let raf: number;
     const tick = () => {
-      if (showBoxRef.current) {
-        const v = videoRef.current;
-        if (v) {
-          const t = v.currentTime;
+      const v = videoRef.current;
+      if (v) {
+        const t = v.currentTime;
+        if (previousVideoTimeRef.current - t > 1) {
+          setShowBox(false);
+          setAlertFlash(false);
+          setPhase("idle");
+          setInfoLines([]);
+          setTypeText("");
+          clearTypeInterval();
+          setSequenceKey((key) => key + 1);
+        }
+        previousVideoTimeRef.current = t;
+
+        if (showBoxRef.current) {
           const kf = lerpKF(t);
           setBoxPos({ x: kf.x, y: kf.y, w: kf.w, h: kf.h });
           setConfidence(getConfidence(t));
@@ -652,72 +695,87 @@ function DetectionDemo() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [started]);
+  }, [started, clearTypeInterval]);
 
   // Typewriter helper
   const typeOut = useCallback((text: string, speed: number = 30): Promise<void> => {
     return new Promise(resolve => {
+      clearTypeInterval();
       let i = 0;
       setTypeText("");
-      const iv = setInterval(() => {
+      typeIntervalRef.current = window.setInterval(() => {
         i++;
         setTypeText(text.slice(0, i));
-        if (i >= text.length) { clearInterval(iv); resolve(); }
+        if (i >= text.length) {
+          clearTypeInterval();
+          resolve();
+        }
       }, speed);
     });
-  }, []);
+  }, [clearTypeInterval]);
 
   // Main sequence
   useEffect(() => {
     if (!started) return;
-    const cycle = cycleRef.current;
+    let cancelled = false;
+    let alertTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const run = async () => {
       // Reset everything
       setPhase("idle");
+      setScanY(0);
       setShowBox(false);
       setAlertFlash(false);
       setThreatLevel("LOW");
       setTempReading(22);
       setInfoLines([]);
       setTypeText("");
+      clearTypeInterval();
 
       await wait(1200);
+      if (cancelled) return;
 
       // Phase 1: Scan
       setPhase("scanning");
-      await typeOut("INITIATING THERMAL SCAN...", 35);
+      await typeOut("INITIATING SCAN...", 35);
+      if (cancelled) return;
       setScanY(0);
 
       await new Promise<void>(resolve => {
         let y = 0;
         const iv = setInterval(() => {
+          if (cancelled) {
+            clearInterval(iv);
+            resolve();
+            return;
+          }
           y += 1.2;
           setScanY(y);
           if (y >= 100) { clearInterval(iv); resolve(); }
         }, 25);
       });
 
-      if (cycleRef.current !== cycle) return;
+      if (cancelled) return;
 
       // Phase 2: Analyzing
       setPhase("analyzing");
-      await typeOut("THERMAL ANOMALY DETECTED — ANALYZING...", 25);
+      await typeOut("ANOMALY DETECTED — ANALYZING...", 25);
       setTempReading(340);
+      if (cancelled) return;
       await wait(1000);
 
-      if (cycleRef.current !== cycle) return;
+      if (cancelled) return;
 
       // Phase 3: Detection — box appears and tracks fire
       setPhase("detected");
       setShowBox(true);
       setAlertFlash(true);
-      setTimeout(() => setAlertFlash(false), 1500);
+      alertTimeout = setTimeout(() => setAlertFlash(false), 1500);
       setThreatLevel("HIGH");
       await typeOut("FIRE DETECTED — TRACKING TARGET", 20);
 
       await wait(1200);
-      if (cycleRef.current !== cycle) return;
+      if (cancelled) return;
 
       // Info lines
       const lines = [
@@ -727,7 +785,7 @@ function DetectionDemo() {
         "ACTION: EMERGENCY SERVICES NOTIFIED",
       ];
       for (const line of lines) {
-        if (cycleRef.current !== cycle) return;
+        if (cancelled) return;
         setInfoLines(prev => [...prev, line]);
         await wait(700);
       }
@@ -735,20 +793,38 @@ function DetectionDemo() {
       // Phase 4: Tracking
       setPhase("alert");
       await wait(600);
+      if (cancelled) return;
       await typeOut("MAINTAINING VISUAL — AI TRACKING ACTIVE", 25);
 
-      // Hold tracking for remaining time then loop
-      await wait(10000);
+      // Hold tracking then restart the whole sequence
+      await wait(6000);
+      if (cancelled) return;
 
-      if (cycleRef.current === cycle) {
-        cycleRef.current++;
-        run();
+      // Reset for next loop
+      setShowBox(false);
+      setPhase("idle");
+      setAlertFlash(false);
+      setThreatLevel("LOW");
+      setTempReading(22);
+      setInfoLines([]);
+      setTypeText("");
+
+      // Restart video from beginning
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
       }
+
+      await wait(1500);
+      if (!cancelled) run();
     };
 
     run();
-    return () => { cycleRef.current++; };
-  }, [started, typeOut]);
+    return () => {
+      cancelled = true;
+      if (alertTimeout) clearTimeout(alertTimeout);
+      clearTypeInterval();
+    };
+  }, [started, typeOut, clearTypeInterval, sequenceKey]);
 
   const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
@@ -820,7 +896,7 @@ function DetectionDemo() {
             <div className="text-[9px] font-mono text-white/50 tracking-wider">MODE: SURVEILLANCE</div>
             <div className="text-[9px] font-mono text-white/50 tracking-wider">FPS: 30 | RES: 1080p</div>
             <div className={`text-[9px] font-mono tracking-wider ${isDanger ? "text-red-400" : "text-white/50"}`}>
-              THERMAL: {tempReading}°C {tempReading > 100 ? "▲▲▲" : ""}
+              TEMP: {tempReading}°C {tempReading > 100 ? "▲▲▲" : ""}
             </div>
             <div className={`text-[9px] font-mono tracking-wider mt-2 px-1.5 py-0.5 inline-block ${
               threatLevel === "HIGH" ? "text-red-400 bg-red-500/15 border border-red-500/30" : "text-[#CDFF00]/70 bg-[#CDFF00]/5 border border-[#CDFF00]/20"
@@ -879,7 +955,7 @@ function DetectionDemo() {
               </span>
               <span className="text-[10px] font-mono text-white/60">{fmtTime(hudTime)}</span>
               <span className="text-[9px] font-mono text-white/40">|</span>
-              <span className="text-[10px] font-mono text-white/60">THERMAL + VISUAL</span>
+              <span className="text-[10px] font-mono text-white/60">AI + VISUAL</span>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-[10px] font-mono text-white/50">BAT 78%</span>
@@ -949,7 +1025,7 @@ const pipelineSteps = [
    ════════════════════════════════════════════ */
 
 const useCases = [
-  { title: "Search & Rescue", desc: "Find missing people in wilderness, disaster zones, or urban areas. Thermal imaging + facial recognition across any terrain.", icon: "🔍", stat: "94% detection rate" },
+  { title: "Search & Rescue", desc: "Find missing people in wilderness, disaster zones, or urban areas. AI-powered detection + facial recognition across any terrain.", icon: "🔍", stat: "94% detection rate" },
   { title: "Sports Filming", desc: "Autonomous broadcast-quality footage. AI tracks players, ball, and action across 6+ sport types without a pilot.", icon: "🎬", stat: "4K 60fps" },
   { title: "Surveillance", desc: "Persistent area monitoring with real-time alerts. Detect vehicles, people, and anomalies across multiple sectors.", icon: "📡", stat: "24/7 autonomous" },
 ];

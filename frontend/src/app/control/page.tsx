@@ -183,7 +183,7 @@ const aiResponses: Record<string, string> = {
   hover: "Holding position. Altitude: 45.2m. Wind speed: 8 km/h NW. Stable hover confirmed. I'll stay here until your next command.",
   photo: "Capturing high-resolution photo… Done. Image saved. Resolution: 5472×3648. No additional targets detected in frame.",
   land: "Initiating landing sequence. Checking landing zone — clear. Descending at 1.5 m/s. Stand by.",
-  scan: "Switching to expanded scan mode. Increasing search radius to 200m and activating thermal imaging overlay.",
+  scan: "Switching to expanded scan mode. Increasing search radius to 200m. AI detection overlay active.",
   default: "Command received. Processing your request now. Adjusting flight parameters and updating mission objectives. I'll keep you updated on progress.",
 };
 
