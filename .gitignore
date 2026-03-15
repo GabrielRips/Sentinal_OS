@@ -9,7 +9,12 @@
 *.app.asar.unpacked.js.map.gz.map.gz
 *.app.asar.unpacked.js.map.gz.map.gz.map
 # dependencies
+
+/node_modules
+**/node_modules/
+
 node_modules
+
 /.pnp
 .pnp.*
 .yarn/*
@@ -22,7 +27,12 @@ node_modules
 /coverage
 
 # next.js
+
+/.next/
+**/.next/
+
 .next/
+
 /out/
 
 # production
@@ -35,6 +45,8 @@ android_app/**/.idea/
 android_app/**/*.apk
 android_app/**/build/**/*.so
 android_app/**/local.properties
+android_app/**/*.iml
+android_app/SampleCode-V5/remote-control-server/agent-logs/
 
 # misc
 .DS_Store

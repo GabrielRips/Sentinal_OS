@@ -5,7 +5,8 @@
   "description": "Minimal WebSocket command server for DJI sample remote control",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "agent": "node agent/index.js"
   },
   "engines": {
     "node": ">=18"
